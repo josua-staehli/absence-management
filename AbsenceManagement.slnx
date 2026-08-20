@@ -1,2 +1,9 @@
 <Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Common/">
+    <Project Path="src/Common/Common.Api/Common.Api.csproj" />
+    <Project Path="src/Common/Common.Application/Common.Application.csproj" />
+    <Project Path="src/Common/Common.Domain/Common.Domain.csproj" />
+    <Project Path="src/Common/Common.Infrastructure/Common.Infrastructure.csproj" />
+  </Folder>
 </Solution>
