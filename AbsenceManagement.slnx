@@ -6,4 +6,11 @@
     <Project Path="src/Common/Common.Domain/Common.Domain.csproj" />
     <Project Path="src/Common/Common.Infrastructure/Common.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Employees/">
+    <Project Path="src/Modules/Employees/Employees.Api/Employees.Api.csproj" />
+    <Project Path="src/Modules/Employees/Employees.Application/Employees.Application.csproj" />
+    <Project Path="src/Modules/Employees/Employees.Domain/Employees.Domain.csproj" />
+    <Project Path="src/Modules/Employees/Employees.Infrastructure/Employees.Infrastructure.csproj" />
+  </Folder>
 </Solution>
