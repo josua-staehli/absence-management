@@ -1,0 +1,27 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.5.0">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Host\AbsenceManagement.Api\AbsenceManagement.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.JavaScript" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <UserSecretsId>absence-management-apphost</UserSecretsId>
+  </PropertyGroup>
+
+  <!--
+    Aspire 13.5 warns (ASPIRE010) when the AppHost does not use the Aspire CLI bundle. Using it
+    would mean the orchestrator and the dashboard come from a globally installed `aspire` CLI
+    instead of from NuGet, which would turn that CLI into a prerequisite for building this
+    repository.
+  -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+  </PropertyGroup>
+
+</Project>

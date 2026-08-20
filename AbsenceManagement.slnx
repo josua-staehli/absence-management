@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/aspire/">
+    <Project Path="aspire/AbsenceManagement.AppHost/AbsenceManagement.AppHost.csproj" />
+  </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/Common/">
     <Project Path="src/Common/Common.Api/Common.Api.csproj" />
