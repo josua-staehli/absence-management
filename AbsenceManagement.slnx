@@ -6,6 +6,10 @@
     <Project Path="src/Common/Common.Domain/Common.Domain.csproj" />
     <Project Path="src/Common/Common.Infrastructure/Common.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Host/">
+    <Project Path="src/Host/AbsenceManagement.Api/AbsenceManagement.Api.csproj" />
+    <Project Path="src/Host/AbsenceManagement.ServiceDefaults/AbsenceManagement.ServiceDefaults.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/" />
   <Folder Name="/src/Modules/Absences/">
     <Project Path="src/Modules/Absences/Absences.Api/Absences.Api.csproj" />
