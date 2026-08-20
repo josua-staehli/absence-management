@@ -1,0 +1,32 @@
+## Dependencies
+node_modules
+
+## Build output
+dist
+tmp
+out-tsc
+storybook-static
+
+## Nx: the local task cache and the project graph of the daemon
+.nx/cache
+.nx/workspace-data
+.nx/migrate-runs
+
+## Vite writes these next to a config file it had to transpile first
+vite.config.*.timestamp*
+vitest.config.*.timestamp*
+
+## Test output: Playwright reports and traces, coverage
+test-output
+coverage
+
+## pnpm
+pnpm-debug.log*
+
+## VS Code: the shared files are committed, everything else in there is personal state
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+

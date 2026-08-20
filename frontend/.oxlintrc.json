@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Setting `plugins` replaces the default set, so the defaults are repeated here. `vitest` is
+  // not among them: its rules are about test files and would otherwise fire on production code.
+  "plugins": ["eslint", "typescript", "unicorn", "oxc", "react", "jsx-a11y", "import", "promise"],
+  /*
+   * oxlint exits with a non-zero status for warnings as well as for errors, so there is no
+   * "reported but tolerated" level: every enabled category has to be one this workspace actually
+   * follows. `style` is off for that reason - it wants single default exports, sorted object
+   * keys, capitalised comments and `const` function expressions, none of which is how this
+   * codebase or the Nx generators write code. The three categories that stay find defects.
+   */
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "error",
+    "style": "off"
+  },
+  "env": { "browser": true, "es2022": true },
+  "rules": {
+    // The frontend talks to the API through the generated client only.
+    "no-restricted-globals": ["error", "fetch", "XMLHttpRequest"],
+    "no-console": "error",
+    // Mantine ships plain CSS, so a stylesheet is imported for its side effect - by AppLayout
+    // once per app, and by the Storybook preview.
+    "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }],
+    // React 19 with the automatic JSX runtime - nothing imports React itself.
+    "react/react-in-jsx-scope": "off"
+  },
+  // Generated code is not reviewed, formatted or linted - it is regenerated.
+  "ignorePatterns": ["packages/shared/api-client/src/generated", "openapi"],
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
+      "plugins": ["vitest"],
+      "rules": { "no-console": "off" }
+    }
+  ]
+}

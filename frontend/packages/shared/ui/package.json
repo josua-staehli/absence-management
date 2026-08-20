@@ -1,0 +1,46 @@
+{
+  "name": "@absence-management/shared-ui",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@absence-management/shared-api-client": "workspace:*",
+    "@absence-management/shared-i18n": "workspace:*"
+  },
+  "nx": {
+    "tags": [
+      "scope:shared",
+      "type:ui"
+    ],
+    "targets": {
+      "storybook": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "storybook dev --port 4400 --no-open",
+          "cwd": "{projectRoot}"
+        }
+      },
+      "build-storybook": {
+        "executor": "nx:run-commands",
+        "cache": true,
+        "outputs": [
+          "{projectRoot}/storybook-static"
+        ],
+        "options": {
+          "command": "storybook build",
+          "cwd": "{projectRoot}"
+        }
+      }
+    }
+  }
+}

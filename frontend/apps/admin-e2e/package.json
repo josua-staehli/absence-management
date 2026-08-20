@@ -1,0 +1,14 @@
+{
+  "name": "@absence-management/admin-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "tags": [
+      "scope:app",
+      "type:e2e"
+    ],
+    "implicitDependencies": [
+      "@absence-management/admin"
+    ]
+  }
+}

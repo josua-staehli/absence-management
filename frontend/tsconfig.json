@@ -1,0 +1,40 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compileOnSave": false,
+  "files": [],
+  "references": [
+    {
+      "path": "./apps/web-e2e"
+    },
+    {
+      "path": "./apps/web"
+    },
+    {
+      "path": "./apps/admin-e2e"
+    },
+    {
+      "path": "./apps/admin"
+    },
+    {
+      "path": "./packages/shared/api-client"
+    },
+    {
+      "path": "./packages/shared/ui"
+    },
+    {
+      "path": "./packages/employees/data-access"
+    },
+    {
+      "path": "./packages/employees/feature"
+    },
+    {
+      "path": "./packages/absences/data-access"
+    },
+    {
+      "path": "./packages/absences/feature"
+    },
+    {
+      "path": "./packages/shared/i18n"
+    }
+  ]
+}

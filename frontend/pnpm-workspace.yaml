@@ -1,0 +1,36 @@
+# The first glob comes with the workspace, the others are written by the Nx generators - a new
+# project in a folder that is not covered yet appends a line here. Every folder that matches gets
+# its own node_modules with exactly the dependencies its package.json declares - nothing else is
+# reachable.
+packages:
+  - 'apps/*'
+  - 'packages/employees/*'
+  - 'packages/shared/*'
+  - 'packages/absences/*'
+
+autoInstallPeers: true
+
+# pnpm blocks install scripts of dependencies unless they are decided here. The first three lines
+# are written by Nx - Vite 8 does not use esbuild any more, so its install script is not needed.
+# oxlint and oxfmt unpack a native binary and genuinely need theirs; everything else stays blocked,
+# which is the point. `pnpm approve-builds` maintains the list.
+allowBuilds:
+  nx: true
+  '@swc/core': false
+  esbuild: false
+  oxlint: true
+  oxfmt: true
+
+# node_modules records the absolute path it was created at. Move or rename the repository folder
+# and pnpm wants to purge and rebuild it - which it asks about first, and Aspire runs
+# `pnpm install` with no TTY to answer on. The install then aborts with exit code 1 and the
+# "web" resource never starts.
+confirmModulesPurge: false
+
+minimumReleaseAgeExclude:
+  - '@storybook/builder-vite@10.5.9'
+  - '@storybook/csf-plugin@10.5.9'
+  - '@storybook/react-dom-shim@10.5.9'
+  - '@storybook/react-vite@10.5.9'
+  - '@storybook/react@10.5.9'
+  - storybook@10.5.9

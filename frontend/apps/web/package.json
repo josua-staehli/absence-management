@@ -1,0 +1,17 @@
+{
+  "name": "@absence-management/web",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@absence-management/absences-feature": "workspace:*",
+    "@absence-management/employees-feature": "workspace:*",
+    "@absence-management/shared-i18n": "workspace:*",
+    "@absence-management/shared-ui": "workspace:*"
+  },
+  "nx": {
+    "tags": [
+      "scope:app",
+      "type:app"
+    ]
+  }
+}
