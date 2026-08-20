@@ -9,4 +9,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Absences.UnitTests" />
+  </ItemGroup>
 </Project>

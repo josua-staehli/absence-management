@@ -4,4 +4,7 @@
     <ProjectReference Include="..\..\..\Common\Common.Application\Common.Application.csproj" />
     <ProjectReference Include="..\..\Employees\Employees.Contracts\Employees.Contracts.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Absences.UnitTests" />
+  </ItemGroup>
 </Project>

@@ -3,4 +3,7 @@
     <ProjectReference Include="..\Employees.Domain\Employees.Domain.csproj" />
     <ProjectReference Include="..\..\..\Common\Common.Application\Common.Application.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Employees.UnitTests" />
+  </ItemGroup>
 </Project>
