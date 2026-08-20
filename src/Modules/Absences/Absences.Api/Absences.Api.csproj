@@ -1,0 +1,6 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Absences.Infrastructure\Absences.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Common\Common.Api\Common.Api.csproj" />
+  </ItemGroup>
+</Project>

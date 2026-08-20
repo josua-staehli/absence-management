@@ -7,6 +7,12 @@
     <Project Path="src/Common/Common.Infrastructure/Common.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Absences/">
+    <Project Path="src/Modules/Absences/Absences.Api/Absences.Api.csproj" />
+    <Project Path="src/Modules/Absences/Absences.Application/Absences.Application.csproj" />
+    <Project Path="src/Modules/Absences/Absences.Domain/Absences.Domain.csproj" />
+    <Project Path="src/Modules/Absences/Absences.Infrastructure/Absences.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Employees/">
     <Project Path="src/Modules/Employees/Employees.Api/Employees.Api.csproj" />
     <Project Path="src/Modules/Employees/Employees.Application/Employees.Application.csproj" />
