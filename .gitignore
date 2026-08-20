@@ -1,0 +1,15 @@
+## .NET
+artifacts/
+bin/
+obj/
+*.user
+
+## Rider
+# The .idea folder itself is committed, so the shared solution settings travel with the repository.
+# This one file does not: Rider's Aspire plugin rewrites it whenever the AppHost starts, because
+# the PostgreSQL container is published on a new port every run.
+.idea/.idea.AbsenceManagement/.idea/dataSources.xml
+
+## System files
+.DS_Store
+Thumbs.db
