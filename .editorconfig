@@ -1,0 +1,28 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 100
+
+# XML, project, config and data files
+[*.{xml,csproj,proj,slnx,props,targets,config,nuspec,json,yml,yaml}]
+indent_size = 2
+
+[*.csproj]
+ij_xml_space_inside_empty_tag = true
+
+[*.slnx]
+ij_xml_space_inside_empty_tag = true
+max_line_length = off
+ij_xml_attribute_wrap = off
+
+[*.cs]
+resharper_csharp_braces_for_ifelse = not_required
+resharper_csharp_braces_redundant = false
+resharper_arguments_skip_single = true
+resharper_redundant_argument_name_specification_highlighting = none
