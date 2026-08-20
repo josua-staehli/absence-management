@@ -2,5 +2,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Absences.Domain\Absences.Domain.csproj" />
     <ProjectReference Include="..\..\..\Common\Common.Application\Common.Application.csproj" />
+    <ProjectReference Include="..\..\Employees\Employees.Contracts\Employees.Contracts.csproj" />
   </ItemGroup>
 </Project>

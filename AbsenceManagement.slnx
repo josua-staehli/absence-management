@@ -16,6 +16,7 @@
   <Folder Name="/src/Modules/Employees/">
     <Project Path="src/Modules/Employees/Employees.Api/Employees.Api.csproj" />
     <Project Path="src/Modules/Employees/Employees.Application/Employees.Application.csproj" />
+    <Project Path="src/Modules/Employees/Employees.Contracts/Employees.Contracts.csproj" />
     <Project Path="src/Modules/Employees/Employees.Domain/Employees.Domain.csproj" />
     <Project Path="src/Modules/Employees/Employees.Infrastructure/Employees.Infrastructure.csproj" />
   </Folder>
