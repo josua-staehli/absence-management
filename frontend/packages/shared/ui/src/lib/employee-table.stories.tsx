@@ -50,5 +50,5 @@ export const Loading: Story = {
 };
 
 export const Failed: Story = {
-  args: { errorMessage: 'Die Anfrage ist fehlgeschlagen.' },
+  args: { errorMessage: 'The request failed.' },
 };

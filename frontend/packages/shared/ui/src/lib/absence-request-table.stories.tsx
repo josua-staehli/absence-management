@@ -21,7 +21,7 @@ const requests: AbsenceRequestDto[] = [
     startDate: '2026-07-06',
     endDate: '2026-07-17',
     status: AbsenceStatus.OPEN,
-    comment: 'Sommerferien',
+    comment: 'Summer vacation',
     createdAt: '2026-06-01T08:00:00+02:00',
     updatedAt: null,
   },
@@ -45,7 +45,7 @@ const requests: AbsenceRequestDto[] = [
     startDate: '2026-09-14',
     endDate: '2026-09-15',
     status: AbsenceStatus.REJECTED,
-    comment: 'Kurs bereits ausgebucht',
+    comment: 'Course already fully booked',
     createdAt: '2026-08-20T11:45:00+02:00',
     updatedAt: '2026-08-21T10:00:00+02:00',
   },
@@ -80,5 +80,5 @@ export const Loading: Story = {
 };
 
 export const Failed: Story = {
-  args: { errorMessage: 'Die Anfrage ist fehlgeschlagen.' },
+  args: { errorMessage: 'The request failed.' },
 };
