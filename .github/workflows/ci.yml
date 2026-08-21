@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch cancels the run that is now outdated.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - run: dotnet restore
+
+      # Warnings are errors and code style is enforced during the build
+      # (TreatWarningsAsErrors, EnforceCodeStyleInBuild in Directory.Build.props),
+      # so this is the lint step as well.
+      - run: dotnet build --no-restore
+
+      - run: dotnet test --no-build
+
+      # The build writes frontend/openapi/AbsenceManagement.Api.json, and that file is
+      # committed because the frontend generates its TypeScript client from it.
+      - name: OpenAPI document is up to date
+        run: |
+          if [ -n "$(git status --porcelain -- frontend/openapi)" ]; then
+            git status --short -- frontend/openapi
+            echo "::error::The endpoints changed. Run 'dotnet build' and commit frontend/openapi."
+            exit 1
+          fi
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # Type check, oxlint, the Nx boundary rule and the formatting check.
+      - run: pnpm check
+
+      # Vitest runs once rather than watching, because GitHub Actions sets CI=true.
+      - run: pnpm test
+
+      # Regenerates the client from the committed OpenAPI document, then builds both apps.
+      - run: pnpm build
+
+      - name: Generated API client is up to date
+        run: |
+          if [ -n "$(git status --porcelain -- packages/shared/api-client/src/generated)" ]; then
+            git status --short -- packages/shared/api-client/src/generated
+            echo "::error::The API client is stale. Run 'pnpm gen:api' and commit the result."
+            exit 1
+          fi
+
+      - run: pnpm exec playwright install --with-deps
+
+      # Playwright serves the built apps itself; the tests stub the API, so no backend is needed.
+      - run: pnpm exec nx run-many -t e2e
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/apps/*-e2e/test-output
+          retention-days: 7

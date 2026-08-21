@@ -3195,3 +3195,183 @@ pnpm check
 | `pnpm test`         | Vitest, per project                                                 |
 | `pnpm e2e`          | Playwright, one project per application, against the built app      |
 | `pnpm build`        | Regenerates the client, then builds both applications with Rolldown |
+
+## Continuous integration
+
+Everything above is checked by two commands, `dotnet test` and `pnpm check`. CI runs them on every
+pull request and on every push to `main`, in one job per stack, so the two run in parallel and a red
+build points at one side of the repository.
+
+### The workflow
+
+**`.github/workflows/ci.yml`**:
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch cancels the run that is now outdated.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - run: dotnet restore
+
+      # Warnings are errors and code style is enforced during the build
+      # (TreatWarningsAsErrors, EnforceCodeStyleInBuild in Directory.Build.props),
+      # so this is the lint step as well.
+      - run: dotnet build --no-restore
+
+      - run: dotnet test --no-build
+
+      # The build writes frontend/openapi/AbsenceManagement.Api.json, and that file is
+      # committed because the frontend generates its TypeScript client from it.
+      - name: OpenAPI document is up to date
+        run: |
+          if [ -n "$(git status --porcelain -- frontend/openapi)" ]; then
+            git status --short -- frontend/openapi
+            echo "::error::The endpoints changed. Run 'dotnet build' and commit frontend/openapi."
+            exit 1
+          fi
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - run: pnpm install --frozen-lockfile
+
+      # Type check, oxlint, the Nx boundary rule and the formatting check.
+      - run: pnpm check
+
+      # Vitest runs once rather than watching, because GitHub Actions sets CI=true.
+      - run: pnpm test
+
+      # Regenerates the client from the committed OpenAPI document, then builds both apps.
+      - run: pnpm build
+
+      - name: Generated API client is up to date
+        run: |
+          if [ -n "$(git status --porcelain -- packages/shared/api-client/src/generated)" ]; then
+            git status --short -- packages/shared/api-client/src/generated
+            echo "::error::The API client is stale. Run 'pnpm gen:api' and commit the result."
+            exit 1
+          fi
+
+      - run: pnpm exec playwright install --with-deps
+
+      # Playwright serves the built apps itself; the tests stub the API, so no backend is needed.
+      - run: pnpm exec nx run-many -t e2e
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/apps/*-e2e/test-output
+          retention-days: 7
+```
+
+### Why it looks like this
+
+**The backend job has no lint step.** `Directory.Build.props` sets `TreatWarningsAsErrors` and
+`EnforceCodeStyleInBuild`, see [Add common files](#add-common-files), so an unused using or a
+violated naming rule is a build error rather than a warning nobody reads. `dotnet build` is the
+lint step, and there is no `dotnet format --verify-no-changes` next to it that could disagree
+with it.
+
+**Nothing has to be started.** The use case tests run against in-memory SQLite, and the Playwright
+tests stub `/api` and drive the built application from `vite preview`. So there is no PostgreSQL
+service container, no Docker, no `BASE_URL` and no secrets. The AppHost is compiled like every
+other project but never run: it orchestrates local development, not CI.
+
+**Two generated files are committed, so CI checks that they are current.**
+`frontend/openapi/AbsenceManagement.Api.json` is written by `dotnet build`, and
+`packages/shared/api-client/src/generated/` is written from it by `pnpm gen:api`, see
+[The generated API client](#the-generated-api-client). Both are in Git, which is what lets the
+frontend build without a .NET SDK — and what makes them go stale unnoticed when an endpoint
+changes and only the C# side is committed. Each job regenerates its own file and fails if the
+working tree moved. The check is `git status --porcelain` rather than `git diff --exit-code`, for
+two reasons: `--exit-code` does not notice a generated file that is new and therefore still
+untracked, and `.gitattributes` marks both paths `-diff`, so a diff would print
+`Binary files differ` instead of naming the file that changed.
+
+**`test` and `e2e`, not `test-ci` and `e2e-ci`.** The Nx Vitest and Playwright plugins register a
+second, atomized target next to each of those, splitting a suite into one task per spec file. Those
+targets refuse to start without Nx Cloud, so the workflow uses the plain ones, which are also what
+`pnpm test` and `pnpm e2e` call. Vitest still runs once instead of watching: `testMode: "watch"` in
+`nx.json` only sets the local default, and Vitest turns watching off whenever `CI` is set, which
+GitHub Actions does for every step.
+
+**pnpm comes from `pnpm/action-setup`, not from Corepack.** Locally it is enabled once with
+`corepack enable`, see [Node and pnpm](#node-and-pnpm). In the workflow the order matters:
+`actions/setup-node` can only fill its pnpm store cache if pnpm is already on the `PATH`, so the
+pnpm action has to run before it. It reads the version from the `packageManager` field, which lives
+in `frontend/package.json` and not at the repository root, hence `package_json_file`.
+
+### What is configured on GitHub
+
+A workflow reports, it does not block. The repository was created empty and with defaults, see
+[Create the Git repository on GitHub](#create-the-git-repository-on-github); these settings are
+added once CI has run for the first time.
+
+**Ruleset on `main`** (Settings → Rules → Rulesets), targeting the default branch:
+
+| Rule                                             | Value                    |
+| ------------------------------------------------ | ------------------------ |
+| Require a pull request before merging            | On                       |
+| Require status checks to pass                    | `Backend` and `Frontend` |
+| Require branches to be up to date before merging | On                       |
+| Block force pushes                               | On                       |
+| Restrict deletions                               | On                       |
+
+The two status checks are the `name:` values of the jobs. GitHub only offers a check in that list
+after it has reported at least once, so the first pull request is opened before the ruleset is
+written.
+
+**Actions permissions** (Settings → Actions → General):
+
+| Setting                                                  | Value                    |
+| -------------------------------------------------------- | ------------------------ |
+| Workflow permissions                                     | Read repository contents |
+| Allow GitHub Actions to create and approve pull requests | Off                      |
+
+The workflow declares `permissions: contents: read` itself, so the repository default only has to
+agree with it rather than grant more. If an organisation restricts actions to GitHub-owned and
+verified creators, `pnpm/action-setup` has to be allowed, the four others are GitHub's own.
+
+No secrets and no variables are needed, nothing in the workflow talks to anything outside the
+repository. Cancelling superseded runs is not a repository setting either, the `concurrency` block
+in the workflow does it. The one convenience worth turning on is **Automatically delete head
+branches** under Settings → General → Pull Requests.
