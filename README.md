@@ -82,7 +82,8 @@ cd frontend && pnpm test && pnpm check
   working on this repository
 - [docs/TASK.md](docs/TASK.md) — the original task description
 - [docs/BOOTSTRAP.md](docs/BOOTSTRAP.md) — how this repository was built, step by step, and why
-- [AGENTS.md](AGENTS.md) — the conventions of the repository
+- [AGENTS.md](AGENTS.md) — rules, instructions, and context provided for coding agents (and
+  humans) for interacting with the codebase of this repository.
 
 ## Architectural overview
 
