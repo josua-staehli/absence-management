@@ -8,9 +8,10 @@ namespace AbsenceManagement.ArchitectureTests;
 ///     The solution as ArchUnitNET sees it, loaded once for the whole test run.
 ///     <para>
 ///         Nothing here names a module. Every project of the solution is called
-///         <c>&lt;Owner&gt;.&lt;Layer&gt;</c>. Domain projects are referenced by a wildcard as discovery
-///         anchors, while the host brings in the remaining layers. Adding a module changes no test
-///         code, and forgetting to mount it in the host leaves its missing layers visible.
+///         <c>&lt;Owner&gt;.&lt;Layer&gt;</c>. Domain projects are referenced by a wildcard as
+///         discovery anchors, while the host brings in the remaining layers. Adding a module
+///         changes no test code, and forgetting to mount it in the host leaves its missing layers
+///         visible.
 ///     </para>
 /// </summary>
 internal static class SolutionArchitecture

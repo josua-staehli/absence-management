@@ -1,3 +1,4 @@
+using Employees.Infrastructure;
 using Employees.Infrastructure.Persistence;
 using Employees.Infrastructure.Persistence.Queries;
 using Employees.Infrastructure.Persistence.Repositories;
@@ -21,6 +22,7 @@ internal sealed class EmployeesFixture : IAsyncDisposable
         DbContext = dbContext;
         Employees = new EmployeeRepository(dbContext);
         Queries = new EmployeeQueries(dbContext);
+        EmployeeDirectory = new EmployeeDirectory(dbContext);
     }
 
     /// <summary>Also the handlers' unit of work, and the context the repository writes to.</summary>
@@ -29,6 +31,12 @@ internal sealed class EmployeesFixture : IAsyncDisposable
     public EmployeeRepository Employees { get; }
 
     public EmployeeQueries Queries { get; }
+
+    /// <summary>
+    ///     The real implementation of the contract the other modules reach this one through, not
+    ///     the fake that stands in for it on their side of the boundary.
+    /// </summary>
+    public EmployeeDirectory EmployeeDirectory { get; }
 
     public async ValueTask DisposeAsync()
     {
