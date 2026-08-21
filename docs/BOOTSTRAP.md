@@ -3130,9 +3130,3 @@ pnpm check
 | `pnpm test`         | Vitest, per project                                                 |
 | `pnpm e2e`          | Playwright, one project per application, against the built app      |
 | `pnpm build`        | Regenerates the client, then builds both applications with Rolldown |
-
-```bash
-cd ..
-git add frontend Directory.Build.props Directory.Packages.props .gitattributes src/Host
-git commit -m "Add frontend workspace"
-```
