@@ -246,7 +246,7 @@ Add a `global.json` file to pin the SDK version, so that every developer and the
 the same SDK:
 
 ```bash
-dotnet new globaljson --sdk-version 10.0.0 --roll-forward latestFeature
+dotnet new globaljson --sdk-version 10.0.100 --roll-forward latestFeature
 ```
 
 This creates the following file in the repository root:
@@ -255,7 +255,7 @@ This creates the following file in the repository root:
 {
   "sdk": {
     "rollForward": "latestFeature",
-    "version": "10.0.0"
+    "version": "10.0.100"
   }
 }
 ```
@@ -263,6 +263,13 @@ This creates the following file in the repository root:
 The `latestFeature` policy selects the highest installed 10.0 SDK, so patch and feature band
 updates are picked up automatically, while .NET 11 is not used by accident. Add `--force` to the
 command to overwrite an existing `global.json`.
+
+The version has to be a real SDK version, which means it ends in a feature band: the .NET 10 SDKs
+are `10.0.100`, `10.0.200`, `10.0.400` and so on, and `10.0.0` is none of them. The local CLI
+accepts it anyway and rolls forward, so the mistake stays invisible until `actions/setup-dotnet`
+reads the same file in CI and refuses it with `Version '10.0.0' is not valid for the 'sdk.version'
+value in global.json`. The first band is therefore the floor, and `latestFeature` moves up from
+there.
 
 #### Directory.Build.props:
 
