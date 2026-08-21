@@ -6,14 +6,15 @@ overview and [docs/BOOTSTRAP.md](docs/BOOTSTRAP.md) for how the repository was b
 ## Layout
 
 ```text
-src/               the backend
-src/Common/        building blocks every DDD module reuses
-src/Modules/       modules fitting into the DDD pattern (bounded contexts)
-src/Host/          the web host that mounts the modules
-tests/             tests for the backend
-tests/Modules/     one test project per module
-aspire/            the AppHost: which resources run and how they depend on each other
-frontend/          the frontend built as Nx workspace, apps and packages
+src/                the backend
+src/Common/         building blocks every DDD module reuses
+src/Modules/        modules fitting into the DDD pattern (bounded contexts)
+src/Host/           the web host that mounts the modules
+tests/              tests for the backend
+tests/Modules/      one test project per module
+tests/Architecture/ rules that hold across all modules, checked with ArchUnitNET
+aspire/             the AppHost: which resources run and how they depend on each other
+frontend/           the frontend built as Nx workspace, apps and packages
 ```
 
 `AbsenceManagement.slnx` is the solution, in the XML `slnx` format.
@@ -51,6 +52,9 @@ cd frontend && pnpm check   # typecheck + oxlint + boundaries + formatting check
   `AddPlaceholderConnectionStrings`, `Add<Name>Module()` and `Map<Name>Module()`.
 - Use case tests run the real handlers and EF Core mapping against in-memory SQLite, domain tests
   need no fixture at all.
+- The rules above the layering, the module boundary and the `internal` conventions are checked by
+  `tests/Architecture/`. No rule there names a module: they are regular expressions over the
+  `<Module>.<Layer>` naming, so a new module is covered by being mounted in the host.
 
 Migrations are generated, never written by hand:
 

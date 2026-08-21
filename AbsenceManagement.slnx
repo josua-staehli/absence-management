@@ -28,6 +28,9 @@
     <Project Path="src/Modules/Employees/Employees.Infrastructure/Employees.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/" />
+  <Folder Name="/tests/Architecture/">
+    <Project Path="tests/Architecture/AbsenceManagement.ArchitectureTests/AbsenceManagement.ArchitectureTests.csproj" />
+  </Folder>
   <Folder Name="/tests/Modules/">
     <Project Path="tests/Modules/Absences.UnitTests/Absences.UnitTests.csproj" />
     <Project Path="tests/Modules/Employees.UnitTests/Employees.UnitTests.csproj" />

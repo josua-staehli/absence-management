@@ -16,14 +16,15 @@ everything: database, API and both dev servers.
 ## Layout
 
 ```text
-src/               the backend
-src/Common/        building blocks every DDD module reuses
-src/Modules/       modules fitting into the DDD pattern (bounded contexts)
-src/Host/          the web host that mounts the modules
-tests/             tests for the backend
-tests/Modules/     one test project per module
-aspire/            the AppHost: which resources run and how they depend on each other
-frontend/          the frontend built as Nx workspace, apps and packages
+src/                the backend
+src/Common/         building blocks every DDD module reuses
+src/Modules/        modules fitting into the DDD pattern (bounded contexts)
+src/Host/           the web host that mounts the modules
+tests/              tests for the backend
+tests/Modules/      one test project per module
+tests/Architecture/ rules that hold across all modules, checked with ArchUnitNET
+aspire/             the AppHost: which resources run and how they depend on each other
+frontend/           the frontend built as Nx workspace, apps and packages
 ```
 
 ## Getting started

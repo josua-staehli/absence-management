@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="TngTech.ArchUnitNET" />
+    <PackageReference Include="TngTech.ArchUnitNET.xUnitV3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Copy the host and its referenced module assemblies to the test output for inspection.
+      No change is needed here if a new module is added.
+    -->
+    <ProjectReference Include="..\..\..\src\Host\AbsenceManagement.Api\AbsenceManagement.Api.csproj" />
+    <!-- Discover modules through their Domain projects, even before they are mounted in the host. -->
+    <ProjectReference Include="..\..\..\src\Modules\*\*.Domain\*.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

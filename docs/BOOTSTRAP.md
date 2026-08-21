@@ -708,7 +708,8 @@ That single reference is the whole coupling between the two modules.
 
 ### Tests
 
-One test project per module in the `tests/` folder, next to `src/` rather than inside it.
+One test project per module in the `tests/` folder, next to `src/` rather than inside it, plus one
+project for the rules that span all of them.
 
 #### Module: Employees
 
@@ -745,6 +746,30 @@ dotnet add tests/Modules/Absences.UnitTests reference src/Modules/Absences/Absen
 ```bash
 dotnet add tests/Modules/Absences.UnitTests package Microsoft.EntityFrameworkCore.Sqlite
 ```
+
+#### Architecture tests
+
+The rules that hold across all modules belong to none of them, so they get their own project next
+to `tests/Modules/`:
+
+```bash
+dotnet new xunit -o tests/Architecture/AbsenceManagement.ArchitectureTests
+```
+
+```bash
+dotnet sln AbsenceManagement.slnx add tests/Architecture/AbsenceManagement.ArchitectureTests
+```
+
+```bash
+dotnet add tests/Architecture/AbsenceManagement.ArchitectureTests reference src/Host/AbsenceManagement.Api
+```
+
+`TngTech.ArchUnitNET` and `TngTech.ArchUnitNET.xUnitV3` go into `Directory.Packages.props` and are
+referenced without a version, like every other package.
+
+The host is the only reference, and that is the point: the host references every module, so
+building this project puts every module assembly next to the test assembly. The rules find the
+modules there rather than naming them.
 
 #### Common changes
 
@@ -1111,6 +1136,46 @@ Two of the tests are about the boundary rather than a business rule:
 - a list whose employee ids the directory does not know still renders, with a placeholder name. No
   foreign key spans the two databases, so this is a state the module has to survive rather than one
   it can rule out.
+
+#### Architecture tests
+
+The two projects above test what the code does. This one tests how it is arranged, with
+[ArchUnitNET](https://github.com/TNG/ArchUnitNET).
+
+| File                       | Purpose                                                                     |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `SolutionArchitecture.cs`  | Finds the assemblies and the modules, and holds the naming convention as regular expressions |
+| `LayerTests.cs`            | The layering inside a module, and that the domain stays free of frameworks   |
+| `ModuleBoundaryTests.cs`   | That a module reaches another one only through its contracts                 |
+| `ConventionTests.cs`       | Where handlers, repositories, queries and endpoints live, and who may see them |
+
+Most of the layering is already true without a test: the layers are separate projects, and the
+compiler refuses a reference that would break them. What the tests add is the step before that.
+Adding the `ProjectReference` that inverts a dependency, or that lets one module reach into another
+one, is a change a reviewer has to notice today. Now it fails a test.
+
+**No rule names a module.** Every project is called `<Owner>.<Layer>`, so the modules can be derived
+from the assemblies that ended up next to the test assembly: whoever owns a `.Domain` assembly is a
+module. The layer rules are regular expressions over that convention, and the boundary rule is a
+theory over every ordered pair of modules. A third module is checked against the other two without
+a line being added anywhere - it only has to be mounted in the host, which it has to be anyway. One
+test asserts exactly that, so a module that never reached the host fails instead of being silently
+exempt from every rule.
+
+One rule does not use ArchUnitNET, and the reason is worth knowing before writing more of them:
+
+```csharp
+public void The_domain_references_nothing_but_the_base_class_library()
+```
+
+A domain project references no other project, so the only way a framework gets in is a
+`PackageReference`. ArchUnitNET, however, only knows the types it was asked to load - a rule
+phrased as "no type in the domain depends on a type under `Microsoft.*`" compares against an empty
+set and passes without ever looking. The assembly references are the honest source for this one.
+The same trap applies to any rule whose forbidden side is not part of the solution.
+
+Every rule here was written twice: once as it stands, and once deliberately inverted, to see it
+fail. A rule that has never failed is a rule nobody has checked.
 
 ## Aspire configuration
 
