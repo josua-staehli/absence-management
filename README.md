@@ -83,3 +83,13 @@ cd frontend && pnpm test && pnpm check
 - [docs/TASK.md](docs/TASK.md) — the original task description
 - [docs/BOOTSTRAP.md](docs/BOOTSTRAP.md) — how this repository was built, step by step, and why
 - [AGENTS.md](AGENTS.md) — the conventions of the repository
+
+## Architectural overview
+
+The Aspire AppHost (orchestrator) starts the API web host, which mounts one module per bounded
+context, and the React applications talk to the API over HTTP. Inside a module the dependencies
+point inwards, from `Api` over `Infrastructure` and `Application` to `Domain`, and every module
+owns its database. Modules never reference each other directly: `Absences` depends on the
+`Contracts` project of `Employees`. `Common` holds the building blocks all of them reuse.
+
+![Architectural overview](docs/architectural_overview.png)
