@@ -9,23 +9,23 @@
     <Project Path="src/Common/Common.Domain/Common.Domain.csproj" />
     <Project Path="src/Common/Common.Infrastructure/Common.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/src/Host/">
-    <Project Path="src/Host/AbsenceManagement.Api/AbsenceManagement.Api.csproj" />
-    <Project Path="src/Host/AbsenceManagement.ServiceDefaults/AbsenceManagement.ServiceDefaults.csproj" />
+  <Folder Name="/src/Hosts/">
+    <Project Path="src/Hosts/AbsenceManagement.Api/AbsenceManagement.Api.csproj" />
+    <Project Path="src/Hosts/AbsenceManagement.ServiceDefaults/AbsenceManagement.ServiceDefaults.csproj" />
   </Folder>
-  <Folder Name="/src/Modules/" />
-  <Folder Name="/src/Modules/Absences/">
-    <Project Path="src/Modules/Absences/Absences.Api/Absences.Api.csproj" />
-    <Project Path="src/Modules/Absences/Absences.Application/Absences.Application.csproj" />
-    <Project Path="src/Modules/Absences/Absences.Domain/Absences.Domain.csproj" />
-    <Project Path="src/Modules/Absences/Absences.Infrastructure/Absences.Infrastructure.csproj" />
+  <Folder Name="/src/Contexts/" />
+  <Folder Name="/src/Contexts/Absences/">
+    <Project Path="src/Contexts/Absences/Absences.Api/Absences.Api.csproj" />
+    <Project Path="src/Contexts/Absences/Absences.Application/Absences.Application.csproj" />
+    <Project Path="src/Contexts/Absences/Absences.Domain/Absences.Domain.csproj" />
+    <Project Path="src/Contexts/Absences/Absences.Infrastructure/Absences.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/src/Modules/Employees/">
-    <Project Path="src/Modules/Employees/Employees.Api/Employees.Api.csproj" />
-    <Project Path="src/Modules/Employees/Employees.Application/Employees.Application.csproj" />
-    <Project Path="src/Modules/Employees/Employees.Contracts/Employees.Contracts.csproj" />
-    <Project Path="src/Modules/Employees/Employees.Domain/Employees.Domain.csproj" />
-    <Project Path="src/Modules/Employees/Employees.Infrastructure/Employees.Infrastructure.csproj" />
+  <Folder Name="/src/Contexts/Employees/">
+    <Project Path="src/Contexts/Employees/Employees.Api/Employees.Api.csproj" />
+    <Project Path="src/Contexts/Employees/Employees.Application/Employees.Application.csproj" />
+    <Project Path="src/Contexts/Employees/Employees.Contracts/Employees.Contracts.csproj" />
+    <Project Path="src/Contexts/Employees/Employees.Domain/Employees.Domain.csproj" />
+    <Project Path="src/Contexts/Employees/Employees.Infrastructure/Employees.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/" />
   <Folder Name="/tests/Architecture/">
@@ -34,8 +34,8 @@
   <Folder Name="/tests/Common/">
     <Project Path="tests/Common/Common.UnitTests/Common.UnitTests.csproj" />
   </Folder>
-  <Folder Name="/tests/Modules/">
-    <Project Path="tests/Modules/Absences.UnitTests/Absences.UnitTests.csproj" />
-    <Project Path="tests/Modules/Employees.UnitTests/Employees.UnitTests.csproj" />
+  <Folder Name="/tests/Contexts/">
+    <Project Path="tests/Contexts/Absences.UnitTests/Absences.UnitTests.csproj" />
+    <Project Path="tests/Contexts/Employees.UnitTests/Employees.UnitTests.csproj" />
   </Folder>
 </Solution>

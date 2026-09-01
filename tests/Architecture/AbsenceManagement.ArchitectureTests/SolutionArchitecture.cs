@@ -7,25 +7,29 @@ namespace AbsenceManagement.ArchitectureTests;
 /// <summary>
 ///     The solution as ArchUnitNET sees it, loaded once for the whole test run.
 ///     <para>
-///         Nothing here names a module. Every project of the solution is called
+///         Nothing here names a bounded context. Every project of the solution is called
 ///         <c>&lt;Owner&gt;.&lt;Layer&gt;</c>. Domain projects are referenced by a wildcard as
-///         discovery anchors, while the host brings in the remaining layers. Adding a module
-///         changes no test code, and forgetting to mount it in the host leaves its missing layers
-///         visible.
+///         discovery anchors, while the host brings in the remaining layers. Adding a bounded
+///         context changes no test code, and forgetting to mount it in the host leaves its missing
+///         layers visible.
 ///     </para>
 /// </summary>
 internal static class SolutionArchitecture
 {
-    /// <summary>The owner of the shared building blocks, which is not a module.</summary>
+    /// <summary>
+    ///     The owner of the shared building blocks, which is not a bounded context.
+    /// </summary>
     private const string Common = "Common";
 
     /// <summary>
     ///     The owner of the host, the test projects and the AppHost. The host is the composition
-    ///     root and sees every module on purpose, so it is not subject to these rules.
+    ///     root and sees every bounded context on purpose, so it is not subject to these rules.
     /// </summary>
     private const string Product = "AbsenceManagement";
 
-    /// <summary>The layers a module or the common building blocks are split into.</summary>
+    /// <summary>
+    ///     The layers a bounded context or the common building blocks are split into.
+    /// </summary>
     private static readonly string[] Layers =
         ["Domain", "Application", "Infrastructure", "Api", "Contracts"];
 
@@ -39,15 +43,17 @@ internal static class SolutionArchitecture
     public static Architecture Instance { get; } =
         new ArchLoader().LoadAssemblies([.. Assemblies]).Build();
 
-    /// <summary>The names of the loaded assemblies, used to check that no module went missing.</summary>
+    /// <summary>
+    ///     The names of the loaded assemblies, used to check that no bounded context went missing.
+    /// </summary>
     public static IReadOnlyCollection<string> AssemblyNames { get; } =
         Assemblies.Select(assembly => assembly.GetName().Name!).ToArray();
 
     /// <summary>
-    ///     The modules of the solution, derived from the assemblies that were found: whoever owns
-    ///     a <c>.Domain</c> assembly is a module, except the shared building blocks.
+    ///     The bounded contexts of the solution, derived from the assemblies that were found:
+    ///     whoever owns a <c>.Domain</c> assembly is one, except the shared building blocks.
     /// </summary>
-    public static IReadOnlyList<string> Modules { get; } = AssemblyNames
+    public static IReadOnlyList<string> BoundedContexts { get; } = AssemblyNames
         .Where(name => name.EndsWith(".Domain", StringComparison.Ordinal))
         .Select(name => name[..^".Domain".Length])
         .Where(owner => owner != Common)
@@ -72,7 +78,8 @@ internal static class SolutionArchitecture
 
     /// <summary>
     ///     The naming convention as regular expressions, one per layer and independent of the
-    ///     module: a namespace is the assembly name, optionally followed by sub-namespaces.
+    ///     bounded context: a namespace is the assembly name, optionally followed by
+    ///     sub-namespaces.
     /// </summary>
     public static class Namespaces
     {
@@ -84,15 +91,15 @@ internal static class SolutionArchitecture
         public const string AboveTheDomain = @"^\w+\.(Application|Infrastructure|Api)(\..*)?$";
         public const string AboveTheApplication = @"^\w+\.(Infrastructure|Api)(\..*)?$";
 
-        /// <summary>Everything of a module that is not its published contract.</summary>
-        public static string InternalsOf(string module)
+        /// <summary>Everything of a bounded context that is not its published contract.</summary>
+        public static string InternalsOf(string boundedContext)
         {
-            return $@"^{module}\.(Domain|Application|Infrastructure|Api)(\..*)?$";
+            return $@"^{boundedContext}\.(Domain|Application|Infrastructure|Api)(\..*)?$";
         }
 
-        public static string AnythingOf(string module)
+        public static string AnythingOf(string boundedContext)
         {
-            return $@"^{module}(\..*)?$";
+            return $@"^{boundedContext}(\..*)?$";
         }
     }
 }

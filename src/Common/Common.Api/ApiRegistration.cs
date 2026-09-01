@@ -7,8 +7,8 @@ namespace Common.Api;
 public static class ApiRegistration
 {
     /// <summary>
-    ///     HTTP behavior that every module shares: problem details for failures and enums that
-    ///     travel as strings, which keeps the API readable for the frontend.
+    ///     HTTP behavior that every bounded context shares: problem details for failures and enums
+    ///     that travel as strings, which keeps the API readable for the frontend.
     /// </summary>
     public static IServiceCollection AddCommonApi(this IServiceCollection services)
     {

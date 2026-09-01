@@ -5,8 +5,8 @@ using static AbsenceManagement.ArchitectureTests.SolutionArchitecture;
 namespace AbsenceManagement.ArchitectureTests;
 
 /// <summary>
-///     Where a kind of type lives, and who gets to see it. A module's surface is its registration
-///     methods and its contracts, everything else is `internal`.
+///     Where a kind of type lives, and who gets to see it. A bounded context's surface is its
+///     registration methods and its contracts, everything else is `internal`.
 /// </summary>
 public sealed class ConventionTests
 {
@@ -29,7 +29,7 @@ public sealed class ConventionTests
         Classes().That().HaveNameEndingWith("Repository").Or().HaveNameEndingWith("Queries")
             .Should().BeInternal()
             .AndShould().ResideInNamespaceMatching(Namespaces.Infrastructure)
-            .Because("how data is read and written is the module's own business")
+            .Because("how data is read and written is the bounded context's own business")
             .Check(Instance);
     }
 
@@ -39,7 +39,9 @@ public sealed class ConventionTests
         Classes().That().HaveNameEndingWith("Endpoints")
             .Should().BeInternal()
             .AndShould().ResideInNamespaceMatching(Namespaces.Api)
-            .Because("the host mounts a module through its Map...Module method, not per endpoint")
+            .Because(
+                "the host mounts a bounded context through its Map...BoundedContext method, "
+                + "not per endpoint")
             .Check(Instance);
     }
 }

@@ -451,8 +451,8 @@ dotnet tool restore
 
 ### Common projects
 
-Four shared projects that every module builds on. They contain no business logic, only the building
-blocks the modules reuse:
+Four shared projects that every bounded context builds on. They contain no business logic, only the
+building blocks the bounded contexts reuse:
 
 | Project                 | Content                                                                 |
 | ----------------------- | ----------------------------------------------------------------------- |
@@ -534,32 +534,32 @@ Build once to verify the projects and references resolve:
 dotnet build
 ```
 
-### Module: Employees
+### Bounded context: Employees
 
-The first module. It repeats the four layers of the common projects, but holds the actual business
-logic instead of the building blocks:
+The first bounded context. It repeats the four layers of the common projects, but holds the actual
+business logic instead of the building blocks:
 
 | Project                    | Content                                                               |
 | -------------------------- | --------------------------------------------------------------------- |
-| `Employees.Domain`         | The employee entities, value objects and the rules that apply to them  |
-| `Employees.Application`    | The use cases, e.g. creating, updating and listing employees           |
-| `Employees.Infrastructure` | The `DbContext`, the entity configurations and the migrations          |
-| `Employees.Api`            | The HTTP endpoints of the module                                       |
+| `Employees.Domain`         | The employee entities, value objects and the rules that apply to them |
+| `Employees.Application`    | The use cases, e.g. creating, updating and listing employees          |
+| `Employees.Infrastructure` | The `DbContext`, the entity configurations and the migrations         |
+| `Employees.Api`            | The HTTP endpoints of the bounded context                             |
 
 ```bash
-dotnet new classlib -o src/Modules/Employees/Employees.Domain
+dotnet new classlib -o src/Contexts/Employees/Employees.Domain
 ```
 
 ```bash
-dotnet new classlib -o src/Modules/Employees/Employees.Application
+dotnet new classlib -o src/Contexts/Employees/Employees.Application
 ```
 
 ```bash
-dotnet new classlib -o src/Modules/Employees/Employees.Infrastructure
+dotnet new classlib -o src/Contexts/Employees/Employees.Infrastructure
 ```
 
 ```bash
-dotnet new classlib -o src/Modules/Employees/Employees.Api
+dotnet new classlib -o src/Contexts/Employees/Employees.Api
 ```
 
 Delete the `Class1.cs` placeholders and build props like `<TargetFramework>`, `<ImplicitUsings>` or
@@ -568,33 +568,33 @@ Delete the `Class1.cs` placeholders and build props like `<TargetFramework>`, `<
 Add the projects to the solution:
 
 ```bash
-dotnet sln AbsenceManagement.slnx add src/Modules/Employees/Employees.Domain src/Modules/Employees/Employees.Application src/Modules/Employees/Employees.Infrastructure src/Modules/Employees/Employees.Api
+dotnet sln AbsenceManagement.slnx add src/Contexts/Employees/Employees.Domain src/Contexts/Employees/Employees.Application src/Contexts/Employees/Employees.Infrastructure src/Contexts/Employees/Employees.Api
 ```
 
-References: every layer references the layer below it inside the module and the matching layer of
-the common projects, so the module never reaches around its own layering:
+References: every layer references the layer below it inside the bounded context and the matching
+layer of the common projects, so it never reaches around its own layering:
 
 ```bash
-dotnet add src/Modules/Employees/Employees.Domain reference src/Common/Common.Domain
-```
-
-```bash
-dotnet add src/Modules/Employees/Employees.Application reference src/Modules/Employees/Employees.Domain src/Common/Common.Application
+dotnet add src/Contexts/Employees/Employees.Domain reference src/Common/Common.Domain
 ```
 
 ```bash
-dotnet add src/Modules/Employees/Employees.Infrastructure reference src/Modules/Employees/Employees.Application src/Common/Common.Infrastructure
+dotnet add src/Contexts/Employees/Employees.Application reference src/Contexts/Employees/Employees.Domain src/Common/Common.Application
 ```
 
 ```bash
-dotnet add src/Modules/Employees/Employees.Api reference src/Modules/Employees/Employees.Infrastructure src/Common/Common.Api
+dotnet add src/Contexts/Employees/Employees.Infrastructure reference src/Contexts/Employees/Employees.Application src/Common/Common.Infrastructure
+```
+
+```bash
+dotnet add src/Contexts/Employees/Employees.Api reference src/Contexts/Employees/Employees.Infrastructure src/Common/Common.Api
 ```
 
 The only extra package is the design time part of EF Core, the rest comes in through
 `Common.Infrastructure`:
 
 ```bash
-dotnet add src/Modules/Employees/Employees.Infrastructure package Microsoft.EntityFrameworkCore.Design
+dotnet add src/Contexts/Employees/Employees.Infrastructure package Microsoft.EntityFrameworkCore.Design
 ```
 
 `Microsoft.EntityFrameworkCore.Design` provides the services that the `dotnet-ef` tool from the
@@ -608,32 +608,32 @@ Build once to verify the projects and references resolve:
 dotnet build
 ```
 
-### Module: Absences
+### Bounded context: Absences
 
-A second module. It repeats the four layers of the common projects, but holds the actual business
-logic instead of the building blocks:
+A second bounded context. It repeats the four layers of the common projects, but holds the actual
+business logic instead of the building blocks:
 
-| Project                   | Content                                                             |
-| ------------------------- | ------------------------------------------------------------------- |
+| Project                   | Content                                                              |
+| ------------------------- | -------------------------------------------------------------------- |
 | `Absences.Domain`         | The absence entities, value objects and the rules that apply to them |
-| `Absences.Application`    | The use cases, e.g. requesting, approving and listing absences        |
-| `Absences.Infrastructure` | The `DbContext`, the entity configurations and the migrations         |
-| `Absences.Api`            | The HTTP endpoints of the module                                      |
+| `Absences.Application`    | The use cases, e.g. requesting, approving and listing absences       |
+| `Absences.Infrastructure` | The `DbContext`, the entity configurations and the migrations        |
+| `Absences.Api`            | The HTTP endpoints of the bounded context                            |
 
 ```bash
-dotnet new classlib -o src/Modules/Absences/Absences.Domain
+dotnet new classlib -o src/Contexts/Absences/Absences.Domain
 ```
 
 ```bash
-dotnet new classlib -o src/Modules/Absences/Absences.Application
+dotnet new classlib -o src/Contexts/Absences/Absences.Application
 ```
 
 ```bash
-dotnet new classlib -o src/Modules/Absences/Absences.Infrastructure
+dotnet new classlib -o src/Contexts/Absences/Absences.Infrastructure
 ```
 
 ```bash
-dotnet new classlib -o src/Modules/Absences/Absences.Api
+dotnet new classlib -o src/Contexts/Absences/Absences.Api
 ```
 
 Delete the `Class1.cs` placeholders and build props like `<TargetFramework>`, `<ImplicitUsings>` or
@@ -642,33 +642,33 @@ Delete the `Class1.cs` placeholders and build props like `<TargetFramework>`, `<
 Add the projects to the solution:
 
 ```bash
-dotnet sln AbsenceManagement.slnx add src/Modules/Absences/Absences.Domain src/Modules/Absences/Absences.Application src/Modules/Absences/Absences.Infrastructure src/Modules/Absences/Absences.Api
+dotnet sln AbsenceManagement.slnx add src/Contexts/Absences/Absences.Domain src/Contexts/Absences/Absences.Application src/Contexts/Absences/Absences.Infrastructure src/Contexts/Absences/Absences.Api
 ```
 
-References: every layer references the layer below it inside the module and the matching layer of
-the common projects, so the module never reaches around its own layering:
+References: every layer references the layer below it inside the bounded context and the matching
+layer of the common projects, so it never reaches around its own layering:
 
 ```bash
-dotnet add src/Modules/Absences/Absences.Domain reference src/Common/Common.Domain
-```
-
-```bash
-dotnet add src/Modules/Absences/Absences.Application reference src/Modules/Absences/Absences.Domain src/Common/Common.Application
+dotnet add src/Contexts/Absences/Absences.Domain reference src/Common/Common.Domain
 ```
 
 ```bash
-dotnet add src/Modules/Absences/Absences.Infrastructure reference src/Modules/Absences/Absences.Application src/Common/Common.Infrastructure
+dotnet add src/Contexts/Absences/Absences.Application reference src/Contexts/Absences/Absences.Domain src/Common/Common.Application
 ```
 
 ```bash
-dotnet add src/Modules/Absences/Absences.Api reference src/Modules/Absences/Absences.Infrastructure src/Common/Common.Api
+dotnet add src/Contexts/Absences/Absences.Infrastructure reference src/Contexts/Absences/Absences.Application src/Common/Common.Infrastructure
+```
+
+```bash
+dotnet add src/Contexts/Absences/Absences.Api reference src/Contexts/Absences/Absences.Infrastructure src/Common/Common.Api
 ```
 
 The only extra package is the design time part of EF Core, the rest comes in through
 `Common.Infrastructure`:
 
 ```bash
-dotnet add src/Modules/Absences/Absences.Infrastructure package Microsoft.EntityFrameworkCore.Design
+dotnet add src/Contexts/Absences/Absences.Infrastructure package Microsoft.EntityFrameworkCore.Design
 ```
 
 Build once to verify the projects and references resolve:
@@ -677,87 +677,88 @@ Build once to verify the projects and references resolve:
 dotnet build
 ```
 
-### Module boundary: Employees.Contracts
+### Context boundary: Employees.Contracts
 
-An absence request belongs to an employee, so the absences module has to be able to ask about one.
-The four layers above give it no way to do that without breaking the boundary: a reference to
-`Employees.Domain` would hand it the aggregate and its rules, a reference to
+An absence request belongs to an employee, so the absences bounded context has to be able to ask
+about one. The four layers above give it no way to do that without breaking the boundary: a
+reference to `Employees.Domain` would hand it the aggregate and its rules, a reference to
 `Employees.Infrastructure` would hand it the table.
 
-A fifth project of the employees module solves it. It holds nothing but the contract other modules
-compile against, which is why it has no references and no packages of its own:
+A fifth project of the employees bounded context solves it. It holds nothing but the contract the
+others compile against, which is why it has no references and no packages of its own:
 
-| Project               | Content                                                                 |
-| --------------------- | ----------------------------------------------------------------------- |
-| `Employees.Contracts` | What another module may know about an employee, and how it may ask for it |
+| Project               | Content                                                                            |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| `Employees.Contracts` | What another bounded context may know about an employee, and how it may ask for it |
 
 ```bash
-dotnet new classlib -o src/Modules/Employees/Employees.Contracts
+dotnet new classlib -o src/Contexts/Employees/Employees.Contracts
 ```
 
 ```bash
-dotnet sln AbsenceManagement.slnx add src/Modules/Employees/Employees.Contracts
+dotnet sln AbsenceManagement.slnx add src/Contexts/Employees/Employees.Contracts
 ```
 
-The implementation stays inside the owning module, so its infrastructure references the contract:
+The implementation stays inside the owning bounded context, so its infrastructure references the
+contract:
 
 ```bash
-dotnet add src/Modules/Employees/Employees.Infrastructure reference src/Modules/Employees/Employees.Contracts
+dotnet add src/Contexts/Employees/Employees.Infrastructure reference src/Contexts/Employees/Employees.Contracts
 ```
 
 And the consumer references the contract - and nothing else of `Employees.*`:
 
 ```bash
-dotnet add src/Modules/Absences/Absences.Application reference src/Modules/Employees/Employees.Contracts
+dotnet add src/Contexts/Absences/Absences.Application reference src/Contexts/Employees/Employees.Contracts
 ```
 
-That single reference is the whole coupling between the two modules.
+That single reference is the whole coupling between the two bounded contexts.
 
 ### Tests
 
-One test project per module in the `tests/` folder, next to `src/` rather than inside it, plus one
-project for the rules that span all of them.
+One test project per bounded context in the `tests/` folder, next to `src/` rather than inside it,
+plus one project for the rules that span all of them.
 
-#### Module: Employees
+#### Bounded context: Employees
 
 ```bash
-dotnet new xunit -o tests/Modules/Employees.UnitTests
+dotnet new xunit -o tests/Contexts/Employees.UnitTests
 ```
 
 ```bash
-dotnet sln AbsenceManagement.slnx add tests/Modules/Employees.UnitTests
+dotnet sln AbsenceManagement.slnx add tests/Contexts/Employees.UnitTests
 ```
 
 ```bash
-dotnet add tests/Modules/Employees.UnitTests reference src/Modules/Employees/Employees.Infrastructure
+dotnet add tests/Contexts/Employees.UnitTests reference src/Contexts/Employees/Employees.Infrastructure
 ```
 
 ```bash
-dotnet add tests/Modules/Employees.UnitTests package Microsoft.EntityFrameworkCore.Sqlite
+dotnet add tests/Contexts/Employees.UnitTests package Microsoft.EntityFrameworkCore.Sqlite
 ```
 
-#### Module: Absences
+#### Bounded context: Absences
 
 ```bash
-dotnet new xunit -o tests/Modules/Absences.UnitTests
-```
-
-```bash
-dotnet sln AbsenceManagement.slnx add tests/Modules/Absences.UnitTests
+dotnet new xunit -o tests/Contexts/Absences.UnitTests
 ```
 
 ```bash
-dotnet add tests/Modules/Absences.UnitTests reference src/Modules/Absences/Absences.Infrastructure
+dotnet sln AbsenceManagement.slnx add tests/Contexts/Absences.UnitTests
 ```
 
 ```bash
-dotnet add tests/Modules/Absences.UnitTests package Microsoft.EntityFrameworkCore.Sqlite
+dotnet add tests/Contexts/Absences.UnitTests reference src/Contexts/Absences/Absences.Infrastructure
+```
+
+```bash
+dotnet add tests/Contexts/Absences.UnitTests package Microsoft.EntityFrameworkCore.Sqlite
 ```
 
 #### Architecture tests
 
-The rules that hold across all modules belong to none of them, so they get their own project next
-to `tests/Modules/`:
+The rules that hold across all bounded contexts belong to none of them, so they get their own
+project next to `tests/Contexts/`:
 
 ```bash
 dotnet new xunit -o tests/Architecture/AbsenceManagement.ArchitectureTests
@@ -768,15 +769,15 @@ dotnet sln AbsenceManagement.slnx add tests/Architecture/AbsenceManagement.Archi
 ```
 
 ```bash
-dotnet add tests/Architecture/AbsenceManagement.ArchitectureTests reference src/Host/AbsenceManagement.Api
+dotnet add tests/Architecture/AbsenceManagement.ArchitectureTests reference src/Hosts/AbsenceManagement.Api
 ```
 
 `TngTech.ArchUnitNET` and `TngTech.ArchUnitNET.xUnitV3` go into `Directory.Packages.props` and are
 referenced without a version, like every other package.
 
-The host is the only reference, and that is the point: the host references every module, so
-building this project puts every module assembly next to the test assembly. The rules find the
-modules there rather than naming them.
+The host is the only reference, and that is the point: the host references every bounded context, so
+building this project puts every one of their assemblies next to the test assembly. The rules find
+them there rather than naming them.
 
 #### Common changes
 
@@ -834,33 +835,33 @@ stay for what really is exceptional.
 
 #### Common.Application
 
-| File                          | Purpose                                                                            |
-| ----------------------------- | ---------------------------------------------------------------------------------- |
-| `Handlers/ICommandHandler.cs` | Interfaces for a use case that changes state, with and without a return value       |
-| `Handlers/IQueryHandler.cs`   | Interface for a use case that only reads data                                       |
-| `IUnitOfWork.cs`              | Transaction boundary of a use case, implemented by the module's `DbContext`          |
+| File                          | Purpose                                                                              |
+| ----------------------------- | ------------------------------------------------------------------------------------ |
+| `Handlers/ICommandHandler.cs` | Interfaces for a use case that changes state, with and without a return value        |
+| `Handlers/IQueryHandler.cs`   | Interface for a use case that only reads data                                        |
+| `IUnitOfWork.cs`              | Transaction boundary of a use case, implemented by the bounded context's `DbContext` |
 | `ApplicationRegistration.cs`  | Registers every handler of an assembly and the `TimeProvider` in the DI container    |
 
 #### Common.Infrastructure
 
-| File                                | Purpose                                                                          |
-| ----------------------------------- | -------------------------------------------------------------------------------- |
-| `Database/ModuleDbContext.cs`       | Base `DbContext` of a module, at the same time its `IUnitOfWork`                   |
-| `Database/IDbInitializer.cs`        | Migrates and seeds the tables of one module. Every module brings its own           |
-| `Database/DatabaseInitialization.cs` | Registers a module's initializer and runs all of them on startup                  |
-| `Database/DesignTimeDbContextFactory.cs` | Base for a module's `dotnet ef` factory, so adding a migration needs no database |
-| `InfrastructureRegistration.cs`     | Registers a module's `DbContext` with the shared connection and provider settings  |
+| File                                     | Purpose                                                                                    |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `Database/BoundedContextDbContext.cs`    | Base `DbContext` of a bounded context, at the same time its `IUnitOfWork`                  |
+| `Database/IDbInitializer.cs`             | Migrates and seeds the tables of one bounded context. Every one brings its own             |
+| `Database/DatabaseInitialization.cs`     | Registers a bounded context's initializer and runs all of them on startup                  |
+| `Database/DesignTimeDbContextFactory.cs` | Base for a bounded context's `dotnet ef` factory, so adding a migration needs no database  |
+| `InfrastructureRegistration.cs`          | Registers a bounded context's `DbContext` with the shared connection and provider settings |
 
 #### Common.Api
 
-| File                           | Purpose                                                                          |
-| ------------------------------ | -------------------------------------------------------------------------------- |
-| `ResultExtensions.cs`          | Turns a business `Error` into an HTTP response, as RFC 9457 problem details       |
-| `ApiRegistration.cs`           | HTTP behavior every module shares: problem details and enums as strings          |
-| `ModuleRegistration.cs`        | `AddModule<T>()`: the connection string, the handlers and the infrastructure of one module |
-| `OpenApiDocumentGeneration.cs` | Placeholder connection strings for the build-time OpenAPI document generation      |
+| File                            | Purpose                                                                                                     |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `ResultExtensions.cs`           | Turns a business `Error` into an HTTP response, as RFC 9457 problem details                                 |
+| `ApiRegistration.cs`            | HTTP behavior every bounded context shares: problem details and enums as strings                            |
+| `BoundedContextRegistration.cs` | `AddBoundedContext<T>()`: the connection string, the handlers and the infrastructure of one bounded context |
+| `OpenApiDocumentGeneration.cs`  | Placeholder connection strings for the build-time OpenAPI document generation                               |
 
-### Module: Employees
+### Bounded context: Employees
 
 #### Employees.Domain
 
@@ -875,46 +876,46 @@ One file per use case: the request as a `record`, and the handler that answers i
 Nothing here knows about EF Core or HTTP, the layer only talks through the interfaces it declares
 itself, which the infrastructure implements.
 
-| File                      | Purpose                                                                        |
-| ------------------------- | ------------------------------------------------------------------------------ |
-| `IEmployeesUnitOfWork.cs` | The transaction boundary of the module, so a handler cannot save through another module's context |
-| `IEmployeeRepository.cs`  | Write side access to the aggregate: add it, and ask whether an email is taken   |
-| `IEmployeeQueries.cs`     | Read side, returns projections instead of aggregates                            |
-| `EmployeeDto.cs`          | The read model of an employee as the UI shows it                                |
-| `CreateEmployee.cs`       | Use case: create an employee, returns the new id                                |
-| `GetEmployees.cs`         | Use case: list all employees                                                    |
-| `GetEmployeeById.cs`      | Use case: a single employee, `NotFound` when there is none                      |
+| File                      | Purpose                                                                                       |
+| ------------------------- | --------------------------------------------------------------------------------------------- |
+| `IEmployeesUnitOfWork.cs` | The transaction boundary of the bounded context, so a handler cannot save through another one |
+| `IEmployeeRepository.cs`  | Write side access to the aggregate: add it, and ask whether an email is taken                 |
+| `IEmployeeQueries.cs`     | Read side, returns projections instead of aggregates                                          |
+| `EmployeeDto.cs`          | The read model of an employee as the UI shows it                                              |
+| `CreateEmployee.cs`       | Use case: create an employee, returns the new id                                              |
+| `GetEmployees.cs`         | Use case: list all employees                                                                  |
+| `GetEmployeeById.cs`      | Use case: a single employee, `NotFound` when there is none                                    |
 
 #### Employees.Infrastructure
 
-The layer that implements what the application layer declares. It is the only place in the module
-that knows EF Core.
+The layer that implements what the application layer declares. It is the only place in the bounded
+context that knows EF Core.
 
-| File                                                  | Purpose                                                        |
-| ----------------------------------------------------- | -------------------------------------------------------------- |
-| `Persistence/EmployeesDbContext.cs`                   | The context of the module, holds the `Employees` table and is its `IEmployeesUnitOfWork` |
-| `Persistence/Configurations/EmployeeConfiguration.cs` | Maps the aggregate to the `employees` table                     |
-| `Persistence/Repositories/EmployeeRepository.cs`      | The write side, adds an employee and checks whether an email is taken |
-| `Persistence/Queries/EmployeeQueries.cs`              | The read side, projects into `EmployeeDto` inside the query     |
-| `Persistence/EmployeesDbInitializer.cs`               | Applies the migrations of the module and seeds employees        |
-| `Persistence/DesignTimeDbContextFactory.cs`           | Lets `dotnet ef` build the context without a database           |
-| `Persistence/Migrations/`                             | The generated migrations of the module's tables                 |
-| `EmployeeDirectory.cs`                                | Answers `IEmployeeDirectory` for other modules, with summaries instead of aggregates |
-| `EmployeesInfrastructureRegistration.cs`              | Registers context, unit of work, repository, queries, directory and initializer in the DI container |
+| File                                                  | Purpose                                                                                               |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `Persistence/EmployeesDbContext.cs`                   | The `DbContext` of the bounded context, holds the `Employees` table and is its `IEmployeesUnitOfWork` |
+| `Persistence/Configurations/EmployeeConfiguration.cs` | Maps the aggregate to the `employees` table                                                           |
+| `Persistence/Repositories/EmployeeRepository.cs`      | The write side, adds an employee and checks whether an email is taken                                 |
+| `Persistence/Queries/EmployeeQueries.cs`              | The read side, projects into `EmployeeDto` inside the query                                           |
+| `Persistence/EmployeesDbInitializer.cs`               | Applies the migrations of the bounded context and seeds employees                                     |
+| `Persistence/DesignTimeDbContextFactory.cs`           | Lets `dotnet ef` build the context without a database                                                 |
+| `Persistence/Migrations/`                             | The generated migrations of the bounded context's tables                                              |
+| `EmployeeDirectory.cs`                                | Answers `IEmployeeDirectory` for other bounded contexts, with summaries instead of aggregates         |
+| `EmployeesInfrastructureRegistration.cs`              | Registers context, unit of work, repository, queries, directory and initializer in the DI container   |
 
 The files in `Persistence/Migrations/` are generated, not written by hand:
 
 ```bash
-dotnet ef migrations add InitialCreate --project src/Modules/Employees/Employees.Infrastructure --output-dir Persistence/Migrations
+dotnet ef migrations add InitialCreate --project src/Contexts/Employees/Employees.Infrastructure --output-dir Persistence/Migrations
 ```
 
 #### Employees.Api
 
-| File                            | Purpose                                                            |
-| ------------------------------- | ------------------------------------------------------------------ |
-| `Contracts/EmployeeContracts.cs` | The request and response models of the HTTP API                    |
-| `Endpoints/EmployeeEndpoints.cs` | The routes under `/api/employees`, one per use case                |
-| `EmployeesModule.cs`             | The seam between the host and the module: services and routes      |
+| File                             | Purpose                                                                |
+| -------------------------------- | ---------------------------------------------------------------------- |
+| `Contracts/EmployeeContracts.cs` | The request and response models of the HTTP API                        |
+| `Endpoints/EmployeeEndpoints.cs` | The routes under `/api/employees`, one per use case                    |
+| `EmployeesBoundedContext.cs`     | The seam between the host and the bounded context: services and routes |
 
 The endpoints hold no logic. Each one resolves the handler of its use case, hands it the request
 and turns the `Result` into a response with `ToHttpResult()` from `Common.Api`, a success becomes
@@ -934,23 +935,24 @@ and turns the `Result` into a response with `ToHttpResult()` from `Common.Api`, 
 
 #### Employees.Contracts
 
-| File                    | Purpose                                                                   |
-| ----------------------- | ------------------------------------------------------------------------- |
-| `IEmployeeDirectory.cs` | The `EmployeeSummary` other modules see, and the two questions they may ask |
+| File                    | Purpose                                                                              |
+| ----------------------- | ------------------------------------------------------------------------------------ |
+| `IEmployeeDirectory.cs` | The `EmployeeSummary` other bounded contexts see, and the two questions they may ask |
 
-Two methods, and both exist because a use case of the absences module calls them: one employee by
-id, to check that a request has a real employee behind it, and the names of a set of ids, for the
-list. The set version is not convenience - it is what keeps a list of absences from turning into
-one call across the boundary per row.
+Two methods, and both exist because a use case of the absences bounded context calls them: one
+employee by id, to check that a request has a real employee behind it, and the names of a set of
+ids, for the list. The set version is not convenience - it is what keeps a list of absences from
+turning into one call across the boundary per row.
 
 The summary carries an id, a display name and an email address. It is not the aggregate and never
-becomes one, so the employees module can rename a property or add a rule without breaking anybody.
+becomes one, so the employees bounded context can rename a property or add a rule without breaking
+anybody.
 
-### Module: Absences
+### Bounded context: Absences
 
-The module of the actual task. It has the same four layers as the employees module and one thing
-they do not have: it depends on another module. Every business rule of absences is implemented
-here.
+The bounded context of the actual task. It has the same four layers as the employees one and one
+thing they do not have: it depends on another bounded context. Every business rule of absences is
+implemented here.
 
 #### Absences.Domain
 
@@ -964,45 +966,45 @@ here.
 
 Where a rule lives follows from what it needs to see:
 
-| Rule                                            | Enforced by                     | Why there                                          |
-| ----------------------------------------------- | ------------------------------- | -------------------------------------------------- |
-| start not after end                             | `DateRange.Create`              | A period that cannot exist invalidly is never checked twice |
-| valid type, starts open                         | `AbsenceRequest.Create`         | Everything the aggregate can see by itself          |
-| decide once, only while open                    | `AbsenceRequest.Approve/Reject` | The state machine of one request                    |
-| no edit after a decision                        | `AbsenceRequest.Update`         | Same                                                |
-| an employee has to exist                        | `CreateAbsenceRequestHandler`   | Only the employees module can answer it             |
-| no overlap for the same employee                | `CreateAbsenceRequestHandler`, `UpdateAbsenceRequestHandler` | Spans all requests of an employee, which no single aggregate sees |
+| Rule                             | Enforced by                                                  | Why there                                                         |
+| -------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------- |
+| start not after end              | `DateRange.Create`                                           | A period that cannot exist invalidly is never checked twice       |
+| valid type, starts open          | `AbsenceRequest.Create`                                      | Everything the aggregate can see by itself                        |
+| decide once, only while open     | `AbsenceRequest.Approve/Reject`                              | The state machine of one request                                  |
+| no edit after a decision         | `AbsenceRequest.Update`                                      | Same                                                              |
+| an employee has to exist         | `CreateAbsenceRequestHandler`                                | Only the employees bounded context can answer it                  |
+| no overlap for the same employee | `CreateAbsenceRequestHandler`, `UpdateAbsenceRequestHandler` | Spans all requests of an employee, which no single aggregate sees |
 
 The employee is a plain `Guid` on the aggregate, not a reference to an `Employee`: employees are
-another module, with another database.
+another bounded context, with another database.
 
 #### Absences.Application
 
 One file per use case: the request as a `record`, and the handler that answers it right next to it.
 
-| File                            | Purpose                                                                  |
-| ------------------------------- | ------------------------------------------------------------------------ |
-| `IAbsencesUnitOfWork.cs`        | The transaction boundary of the module                                    |
-| `IAbsenceRequestRepository.cs`  | Write side: the aggregate by id, the overlap check, and adding a request  |
-| `IAbsenceRequestQueries.cs`     | Read side, returns rows instead of aggregates                             |
-| `AbsenceRequestDto.cs`          | The row this module owns, and the read model the UI gets                  |
-| `CreateAbsenceRequest.cs`       | Use case: create a request, returns the new id                            |
-| `UpdateAbsenceRequest.cs`       | Use case: edit an open request                                            |
-| `ApproveAbsenceRequest.cs`      | Use case: approve an open request                                         |
-| `RejectAbsenceRequest.cs`       | Use case: reject an open request                                          |
-| `GetAbsenceRequests.cs`         | Use case: list all requests, with the employee names                      |
-| `GetAbsenceRequestById.cs`      | Use case: a single request, `NotFound` when there is none                 |
+| File                           | Purpose                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------ |
+| `IAbsencesUnitOfWork.cs`       | The transaction boundary of the bounded context                          |
+| `IAbsenceRequestRepository.cs` | Write side: the aggregate by id, the overlap check, and adding a request |
+| `IAbsenceRequestQueries.cs`    | Read side, returns rows instead of aggregates                            |
+| `AbsenceRequestDto.cs`         | The row this bounded context owns, and the read model the UI gets        |
+| `CreateAbsenceRequest.cs`      | Use case: create a request, returns the new id                           |
+| `UpdateAbsenceRequest.cs`      | Use case: edit an open request                                           |
+| `ApproveAbsenceRequest.cs`     | Use case: approve an open request                                        |
+| `RejectAbsenceRequest.cs`      | Use case: reject an open request                                         |
+| `GetAbsenceRequests.cs`        | Use case: list all requests, with the employee names                     |
+| `GetAbsenceRequestById.cs`     | Use case: a single request, `NotFound` when there is none                |
 
-This is the layer that talks to the other module, and it does so through `IEmployeeDirectory`
-only, it has no idea what implements it. Two places need it:
+This is the layer that talks to the other bounded context, and it does so through
+`IEmployeeDirectory` only, it has no idea what implements it. Two places need it:
 
 - `CreateAbsenceRequestHandler` asks whether the employee exists. The answer is a business
   error, not an exception, and reaches the frontend as `400` with the code
   `Absences.EmployeeUnknown`.
 - `GetAbsenceRequestsHandler` asks for the names of the employees in the list. Before the split
-  this would have been a SQL join. Now it is one query per module and a lookup in memory, in **one**
-  call for the whole list. The join happens in this layer instead of the database, because that is
-  where the price of the boundary belongs.
+  this would have been a SQL join. Now it is one query per bounded context and a lookup in memory,
+  in **one** call for the whole list. The join happens in this layer instead of the database,
+  because that is where the price of the boundary belongs.
 
 An id whose employee no longer exists cannot be ruled out without a foreign key across the two
 databases, so the read model shows a placeholder name and the list stays readable.
@@ -1012,16 +1014,16 @@ does not change, so an edit cannot move an absence to somebody else.
 
 #### Absences.Infrastructure
 
-| File                                                        | Purpose                                                    |
-| ----------------------------------------------------------- | ---------------------------------------------------------- |
-| `Persistence/AbsencesDbContext.cs`                          | The context of the module, holds the `AbsenceRequests` table and is its `IAbsencesUnitOfWork` |
-| `Persistence/Configurations/AbsenceRequestConfiguration.cs` | Maps the aggregate to the `absence_requests` table          |
-| `Persistence/Repositories/AbsenceRequestRepository.cs`      | The write side, including the overlap check as a `SELECT`   |
-| `Persistence/Queries/AbsenceRequestQueries.cs`              | The read side, projects into `AbsenceRequestRow` inside the query |
-| `Persistence/AbsencesDbInitializer.cs`                      | Applies the migrations of the module                        |
-| `Persistence/DesignTimeDbContextFactory.cs`                 | Lets `dotnet ef` build the context without a database       |
-| `Persistence/Migrations/`                                   | The generated migrations of the module's tables             |
-| `AbsencesInfrastructureRegistration.cs`                     | Registers context, unit of work, repository, queries and initializer in the DI container |
+| File                                                        | Purpose                                                                                                    |
+| ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `Persistence/AbsencesDbContext.cs`                          | The `DbContext` of the bounded context, holds the `AbsenceRequests` table and is its `IAbsencesUnitOfWork` |
+| `Persistence/Configurations/AbsenceRequestConfiguration.cs` | Maps the aggregate to the `absence_requests` table                                                         |
+| `Persistence/Repositories/AbsenceRequestRepository.cs`      | The write side, including the overlap check as a `SELECT`                                                  |
+| `Persistence/Queries/AbsenceRequestQueries.cs`              | The read side, projects into `AbsenceRequestRow` inside the query                                          |
+| `Persistence/AbsencesDbInitializer.cs`                      | Applies the migrations of the bounded context                                                              |
+| `Persistence/DesignTimeDbContextFactory.cs`                 | Lets `dotnet ef` build the context without a database                                                      |
+| `Persistence/Migrations/`                                   | The generated migrations of the bounded context's tables                                                   |
+| `AbsencesInfrastructureRegistration.cs`                     | Registers context, unit of work, repository, queries and initializer in the DI container                   |
 
 Three decisions are worth naming:
 
@@ -1033,21 +1035,21 @@ Three decisions are worth naming:
   index stays: every write filters by employee for the overlap check.
 
 Nothing is seeded here. An absence request needs an employee, and the sample employees belong to
-the module that owns them.
+the bounded context that owns them.
 
 The files in `Persistence/Migrations/` are generated, not written by hand:
 
 ```bash
-dotnet ef migrations add InitialCreate --project src/Modules/Absences/Absences.Infrastructure --output-dir Persistence/Migrations
+dotnet ef migrations add InitialCreate --project src/Contexts/Absences/Absences.Infrastructure --output-dir Persistence/Migrations
 ```
 
 #### Absences.Api
 
-| File                                    | Purpose                                                    |
-| --------------------------------------- | ---------------------------------------------------------- |
-| `Contracts/AbsenceRequestContracts.cs`  | The request and response models of the HTTP API             |
-| `Endpoints/AbsenceRequestEndpoints.cs`  | The routes under `/api/absence-requests`, one per use case  |
-| `AbsencesModule.cs`                     | The seam between the host and the module: services and routes |
+| File                                   | Purpose                                                                |
+| -------------------------------------- | ---------------------------------------------------------------------- |
+| `Contracts/AbsenceRequestContracts.cs` | The request and response models of the HTTP API                        |
+| `Endpoints/AbsenceRequestEndpoints.cs` | The routes under `/api/absence-requests`, one per use case             |
+| `AbsencesBoundedContext.cs`            | The seam between the host and the bounded context: services and routes |
 
 | Route                                      | Use case                       | Success               |
 | ------------------------------------------ | ------------------------------ | --------------------- |
@@ -1058,15 +1060,16 @@ dotnet ef migrations add InitialCreate --project src/Modules/Absences/Absences.I
 | `POST /api/absence-requests/{id}/approve`  | `ApproveAbsenceRequestCommand` | `204`                  |
 | `POST /api/absence-requests/{id}/reject`   | `RejectAbsenceRequestCommand`  | `204`                  |
 
-The failures follow the same mapping as every other module: a broken rule of the request itself
-becomes `400`, an unknown id `404`, and a rule about other requests - an overlap, or a decision
-that has already been made - `409`.
+The failures follow the same mapping as every other bounded context: a broken rule of the request
+itself becomes `400`, an unknown id `404`, and a rule about other requests - an overlap, or a
+decision that has already been made - `409`.
 
-The host learns about the module in two lines of `Program.cs`, `builder.AddAbsencesModule()` and
-`app.MapAbsencesModule()`, plus its connection string name in the placeholder list. It never sees a
-handler, the `DbContext` or an endpoint. That the employees module has to be registered as well is
-not visible here either: the absences module asks the container for `IEmployeeDirectory`, and the
-container has it because the employees module registered it.
+The host learns about the bounded context in two lines of `Program.cs`,
+`builder.AddAbsencesBoundedContext()` and `app.MapAbsencesBoundedContext()`, plus its connection
+string name in the placeholder list. It never sees a handler, the `DbContext` or an endpoint. That
+the employees bounded context has to be registered as well is not visible here either: the absences
+one asks the container for `IEmployeeDirectory`, and the container has it because the employees
+bounded context registered it.
 
 ### Tests
 
@@ -1084,8 +1087,8 @@ database. Nothing is mocked, so a broken mapping fails a test instead of passing
 #### Reaching the internals
 
 The handlers, the repository and the queries are `internal`, only the registration methods of a
-module are visible to the rest of the solution. The tests drive those types directly, so both
-projects hand their internals to the test assembly:
+bounded context are visible to the rest of the solution. The tests drive those types directly, so
+both projects hand their internals to the test assembly:
 
 ```xml
 <ItemGroup>
@@ -1094,11 +1097,11 @@ projects hand their internals to the test assembly:
 ```
 
 This goes into `Employees.Application.csproj` and `Employees.Infrastructure.csproj`, and the same
-line with `Absences.UnitTests` into the two projects of the absences module. The alternative,
-making the types public just so a test can reach them, would widen the module's surface for no
+line with `Absences.UnitTests` into the two projects of the absences bounded context. The
+alternative, making the types public just so a test can reach them, would widen that surface for no
 other reason.
 
-#### Module: Employees
+#### Bounded context: Employees
 
 | File                              | Purpose                                                                        |
 | --------------------------------- | ------------------------------------------------------------------------------ |
@@ -1118,56 +1121,56 @@ two different addresses today, because the aggregate does not normalize the addr
 index compares case-sensitively. The test says so in its name and in a comment, so that adding the
 normalization later has to be a deliberate change.
 
-#### Module: Absences
+#### Bounded context: Absences
 
-| File                                    | Purpose                                                              |
-| --------------------------------------- | -------------------------------------------------------------------- |
-| `Domain/AbsenceRequestTests.cs`         | The rules of the aggregate, without a database                  |
-| `UseCases/FakeEmployeeDirectory.cs`     | Stands in for the whole employees module                             |
-| `UseCases/AbsencesFixture.cs`           | Builds the in-memory database with the real mapping, repository and queries |
-| `UseCases/AbsenceRequestUseCaseTests.cs` | Editing, deciding, and the read models                               |
+| File                                     | Purpose                                                                     |
+| ---------------------------------------- | --------------------------------------------------------------------------- |
+| `Domain/AbsenceRequestTests.cs`          | The rules of the aggregate, without a database                              |
+| `UseCases/FakeEmployeeDirectory.cs`      | Stands in for the whole employees bounded context                           |
+| `UseCases/AbsencesFixture.cs`            | Builds the in-memory database with the real mapping, repository and queries |
+| `UseCases/AbsenceRequestUseCaseTests.cs` | Editing, deciding, and the read models                                      |
 
 The domain tests name the rule they cover in a comment.
 
-The use case tests are where the boundary pays off. The absences module is exercised with the real
-EF Core mapping and the real SQL, but the employees module is replaced by `FakeEmployeeDirectory` -
-a small class that implements the contract and holds a dictionary. There is no employees database
-in these tests, no seeded employee rows and no reference to `Employees.Infrastructure`: the only
-thing to substitute is the contract, which is a far better description of what this module actually
-depends on. A change inside the employees module cannot break them. A change to what the
-two modules agreed on can, and should.
+The use case tests are where the boundary pays off. The absences bounded context is exercised with
+the real EF Core mapping and the real SQL, but the employees one is replaced by
+`FakeEmployeeDirectory` - a small class that implements the contract and holds a dictionary. There
+is no employees database in these tests, no seeded employee rows and no reference to
+`Employees.Infrastructure`: the only thing to substitute is the contract, which is a far better
+description of what this bounded context actually depends on. A change inside the employees one
+cannot break them. A change to what the two agreed on can, and should.
 
 Two of the tests are about the boundary rather than a business rule:
 
 - a request for an id no employee has is rejected
 - a list whose employee ids the directory does not know still renders, with a placeholder name. No
-  foreign key spans the two databases, so this is a state the module has to survive rather than one
-  it can rule out.
+  foreign key spans the two databases, so this is a state the bounded context has to survive rather
+  than one it can rule out.
 
 #### Architecture tests
 
 The two projects above test what the code does. This one tests how it is arranged, with
 [ArchUnitNET](https://github.com/TNG/ArchUnitNET).
 
-| File                       | Purpose                                                                     |
-| -------------------------- | --------------------------------------------------------------------------- |
-| `SolutionArchitecture.cs`  | Finds the assemblies and the modules, and holds the naming convention as regular expressions |
-| `LayerTests.cs`            | The layering inside a module, and that the domain stays free of frameworks   |
-| `ModuleBoundaryTests.cs`   | That a module reaches another one only through its contracts                 |
-| `ConventionTests.cs`       | Where handlers, repositories, queries and endpoints live, and who may see them |
+| File                             | Purpose                                                                                               |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `SolutionArchitecture.cs`        | Finds the assemblies and the bounded contexts, and holds the naming convention as regular expressions |
+| `LayerTests.cs`                  | The layering inside a bounded context, and that the domain stays free of frameworks                   |
+| `BoundedContextBoundaryTests.cs` | That a bounded context reaches another one only through its contracts                                 |
+| `ConventionTests.cs`             | Where handlers, repositories, queries and endpoints live, and who may see them                        |
 
 Most of the layering is already true without a test: the layers are separate projects, and the
 compiler refuses a reference that would break them. What the tests add is the step before that.
-Adding the `ProjectReference` that inverts a dependency, or that lets one module reach into another
-one, is a change a reviewer has to notice today. Now it fails a test.
+Adding the `ProjectReference` that inverts a dependency, or that lets one bounded context reach into
+another one, is a change a reviewer has to notice today. Now it fails a test.
 
-**No rule names a module.** Every project is called `<Owner>.<Layer>`, so the modules can be derived
-from the assemblies that ended up next to the test assembly: whoever owns a `.Domain` assembly is a
-module. The layer rules are regular expressions over that convention, and the boundary rule is a
-theory over every ordered pair of modules. A third module is checked against the other two without
-a line being added anywhere - it only has to be mounted in the host, which it has to be anyway. One
-test asserts exactly that, so a module that never reached the host fails instead of being silently
-exempt from every rule.
+**No rule names a bounded context.** Every project is called `<Owner>.<Layer>`, so they can be
+derived from the assemblies that ended up next to the test assembly: whoever owns a `.Domain`
+assembly is one. The layer rules are regular expressions over that convention, and the boundary rule
+is a theory over every ordered pair of them. A third bounded context is checked against the other
+two without a line being added anywhere - it only has to be mounted in the host, which it has to be
+anyway. One test asserts exactly that, so a bounded context that never reached the host fails
+instead of being silently exempt from every rule.
 
 One rule does not use ArchUnitNET, and the reason is worth knowing before writing more of them:
 
@@ -1188,17 +1191,17 @@ fail. A rule that has never failed is a rule nobody has checked.
 
 Until now the solution is a set of class libraries: they compile, but nothing runs them and there is
 no database. .NET Aspire closes that gap for local development. One command starts everything the
-application needs: the PostgreSQL container, the web host with all modules, and later the two
-frontend dev servers. It wires the connection strings between them and shows the whole system in a
-dashboard with logs, traces and metrics.
+application needs: the PostgreSQL container, the web host with all bounded contexts, and later the
+two frontend dev servers. It wires the connection strings between them and shows the whole system in
+a dashboard with logs, traces and metrics.
 
 Three pieces are added here:
 
-| Piece                                 | Where                       | Role                                                                   |
-| ------------------------------------- | --------------------------- | ---------------------------------------------------------------------- |
-| `AbsenceManagement.ServiceDefaults`   | `src/Host/`                 | Telemetry, health checks, service discovery and HTTP resilience, shared by every service |
-| `AbsenceManagement.Api`               | `src/Host/`                 | The web application that hosts the modules, the only executable of `src/` |
-| `AbsenceManagement.AppHost`           | `aspire/`                   | The orchestrator: it declares the resources (database, API, later the frontends) and starts them |
+| Piece                               | Where        | Role                                                                                             |
+| ----------------------------------- | ------------ | ------------------------------------------------------------------------------------------------ |
+| `AbsenceManagement.ServiceDefaults` | `src/Hosts/` | Telemetry, health checks, service discovery and HTTP resilience, shared by every service         |
+| `AbsenceManagement.Api`             | `src/Hosts/` | The web application that hosts the bounded contexts, the only executable of `src/`               |
+| `AbsenceManagement.AppHost`         | `aspire/`    | The orchestrator: it declares the resources (database, API, later the frontends) and starts them |
 
 The AppHost sits outside `src/` on purpose: it is not part of the application that gets deployed, it
 only describes how the parts are run together during development. It is also the only project that
@@ -1219,13 +1222,13 @@ absence-management/
 │     └─ appsettings.json
 ├─ src/
 │  ├─ Common/                            (unchanged)
-│  ├─ Modules/                           (unchanged)
-│  └─ Host/
+│  ├─ Contexts/                          (unchanged)
+│  └─ Hosts/
 │     ├─ AbsenceManagement.Api/
 │     │  ├─ Properties/
 │     │  │  └─ launchSettings.json       contains port for running the API without Aspire
 │     │  ├─ AbsenceManagement.Api.csproj
-│     │  ├─ Program.cs                   service defaults, common API setup, one line per module
+│     │  ├─ Program.cs                   service defaults, common API setup, one line per context
 │     │  ├─ appsettings.json
 │     │  └─ appsettings.Development.json
 │     └─ AbsenceManagement.ServiceDefaults/
@@ -1237,11 +1240,11 @@ absence-management/
 ### Service defaults
 
 ```bash
-dotnet new aspire-servicedefaults -o src/Host/AbsenceManagement.ServiceDefaults
+dotnet new aspire-servicedefaults -o src/Hosts/AbsenceManagement.ServiceDefaults
 ```
 
 ```bash
-dotnet sln AbsenceManagement.slnx add src/Host/AbsenceManagement.ServiceDefaults
+dotnet sln AbsenceManagement.slnx add src/Hosts/AbsenceManagement.ServiceDefaults
 ```
 
 The template writes `Extensions.cs` and the `.csproj`. `Extensions.cs` is left exactly as it is, it
@@ -1308,34 +1311,34 @@ can be deleted from the generated `.csproj` as well.
 
 ### Host: AbsenceManagement.Api
 
-The web application that hosts the modules:
+The web application that hosts the bounded contexts:
 
 ```bash
-dotnet new web -o src/Host/AbsenceManagement.Api
+dotnet new web -o src/Hosts/AbsenceManagement.Api
 ```
 
 ```bash
-dotnet sln AbsenceManagement.slnx add src/Host/AbsenceManagement.Api
+dotnet sln AbsenceManagement.slnx add src/Hosts/AbsenceManagement.Api
 ```
 
-One project reference per module, plus the service defaults:
+One project reference per bounded context, plus the service defaults:
 
 ```bash
-dotnet add src/Host/AbsenceManagement.Api reference src/Modules/Employees/Employees.Api src/Modules/Absences/Absences.Api src/Host/AbsenceManagement.ServiceDefaults
+dotnet add src/Hosts/AbsenceManagement.Api reference src/Contexts/Employees/Employees.Api src/Contexts/Absences/Absences.Api src/Hosts/AbsenceManagement.ServiceDefaults
 ```
 
-The host references only the `*.Api` project of each module. The other three layers come along as
-transitive references, but nothing in `Program.cs` ever names them. The module exposes exactly two
-methods, and that is the whole contract between host and module.
+The host references only the `*.Api` project of each bounded context. The other three layers come
+along as transitive references, but nothing in `Program.cs` ever names them. A bounded context
+exposes exactly two methods, and that is the whole contract between it and the host.
 
 Packages:
 
 ```bash
-dotnet add src/Host/AbsenceManagement.Api package Microsoft.AspNetCore.OpenApi
+dotnet add src/Hosts/AbsenceManagement.Api package Microsoft.AspNetCore.OpenApi
 ```
 
 ```bash
-dotnet add src/Host/AbsenceManagement.Api package Scalar.AspNetCore
+dotnet add src/Hosts/AbsenceManagement.Api package Scalar.AspNetCore
 ```
 
 `Microsoft.AspNetCore.OpenApi` generates the OpenAPI document from the endpoints, `Scalar.AspNetCore`
@@ -1348,9 +1351,9 @@ and `<ImplicitUsings>` the template wrote (they come from the `Directory.Build.p
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
-    <!-- One reference per module, plus the shared web setup and the Aspire service defaults. -->
-    <ProjectReference Include="..\..\Modules\Employees\Employees.Api\Employees.Api.csproj"/>
-    <ProjectReference Include="..\..\Modules\Absences\Absences.Api\Absences.Api.csproj"/>
+    <!-- One reference per context, plus the shared web setup and the Aspire service defaults. -->
+    <ProjectReference Include="..\..\Contexts\Employees\Employees.Api\Employees.Api.csproj"/>
+    <ProjectReference Include="..\..\Contexts\Absences\Absences.Api\Absences.Api.csproj"/>
     <ProjectReference Include="..\AbsenceManagement.ServiceDefaults\AbsenceManagement.ServiceDefaults.csproj"/>
   </ItemGroup>
 
@@ -1380,22 +1383,22 @@ var builder = WebApplication.CreateBuilder(args);
 // Telemetry, health checks and resilience (shared with every future service).
 builder.AddServiceDefaults();
 
-// Problem details and JSON settings that every module shares.
+// Problem details and JSON settings that every bounded context shares.
 builder.Services.AddCommonApi();
 builder.Services.AddOpenApi();
 
 // Only has an effect while `dotnet build` generates the OpenAPI document: that starts the host
-// without a database, and the modules below would otherwise refuse to register.
+// without a database, and the bounded contexts below would otherwise refuse to register.
 builder.AddPlaceholderConnectionStrings(
-    EmployeesModule.ConnectionStringName,
-    AbsencesModule.ConnectionStringName);
+    EmployeesBoundedContext.ConnectionStringName,
+    AbsencesBoundedContext.ConnectionStringName);
 
-// --- Modules -------------------------------------------------------------
-// One line per module. Each module reads its own connection string and registers its own use
-// cases, repositories and database initializer. The order is irrelevant: modules never call each
+// --- Bounded contexts ----------------------------------------------------
+// One line per bounded context. Each one reads its own connection string and registers its own use
+// cases, repositories and database initializer. The order is irrelevant: they never call each
 // other during registration.
-builder.AddEmployeesModule();
-builder.AddAbsencesModule();
+builder.AddEmployeesBoundedContext();
+builder.AddAbsencesBoundedContext();
 // -------------------------------------------------------------------------
 
 var app = builder.Build();
@@ -1406,23 +1409,23 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();                 // interactive API documentation at /scalar/v1
-    await app.Services.InitializeModulesAsync(); // migrate and seed every module
+    await app.Services.InitializeBoundedContextsAsync(); // migrate and seed every one of them
 }
 
 app.MapDefaultEndpoints();
 
-// --- Module routes -------------------------------------------------------
-app.MapEmployeesModule();
-app.MapAbsencesModule();
+// --- Bounded context routes ----------------------------------------------
+app.MapEmployeesBoundedContext();
+app.MapAbsencesBoundedContext();
 // -------------------------------------------------------------------------
 
 app.Run();
 ```
 
-Adding a module costs exactly three lines here, the connection string placeholder, the
-`Add…Module()` and the `Map…Module()`. Nothing else in the host changes.
+Adding a bounded context costs exactly three lines here, the connection string placeholder, the
+`Add…BoundedContext()` and the `Map…BoundedContext()`. Nothing else in the host changes.
 
-`InitializeModulesAsync()` runs every registered `IDbInitializer`, which applies the migrations and
+`InitializeBoundedContextsAsync()` runs every registered `IDbInitializer`, which applies the migrations and
 seeds the development data. It is inside the `IsDevelopment()` block on purpose: applying migrations
 automatically on startup is convenient locally and a bad idea in production, where a migration is a
 deployment step of its own.
@@ -1468,7 +1471,7 @@ has a predictable address when it is started without Aspire:
 ```
 
 Started this way the API has no Aspire around it, so the connection strings have to come from the
-environment, one per module:
+environment, one per bounded context:
 
 ```bash
 $env:ConnectionStrings__employeedb = "Host=localhost;Port=5432;Database=employeedb;Username=postgres;Password=..."
@@ -1476,7 +1479,7 @@ $env:ConnectionStrings__absencedb  = "Host=localhost;Port=5432;Database=absenced
 ```
 
 ```bash
-dotnet run --project src/Host/AbsenceManagement.Api
+dotnet run --project src/Hosts/AbsenceManagement.Api
 ```
 
 That is the exception, not the normal way to work, usually the AppHost below starts everything.
@@ -1498,7 +1501,7 @@ dotnet sln AbsenceManagement.slnx add aspire/AbsenceManagement.AppHost
 ```
 
 ```bash
-dotnet add aspire/AbsenceManagement.AppHost reference src/Host/AbsenceManagement.Api
+dotnet add aspire/AbsenceManagement.AppHost reference src/Hosts/AbsenceManagement.Api
 ```
 
 ```bash
@@ -1527,8 +1530,8 @@ a readable name. The result:
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- The AppHost only needs the host project; the modules come with it. -->
-    <ProjectReference Include="..\..\src\Host\AbsenceManagement.Api\AbsenceManagement.Api.csproj"/>
+    <!-- The AppHost only needs the host project; the bounded contexts come with it. -->
+    <ProjectReference Include="..\..\src\Hosts\AbsenceManagement.Api\AbsenceManagement.Api.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -1580,9 +1583,9 @@ var postgres = builder.AddPostgres("postgres")
     .WithLifetime(ContainerLifetime.Persistent)
     .WithPgAdmin();
 
-// One database per module, named after the connection string that module asks for. Separate
+// One database per bounded context, named after the connection string that one asks for. Separate
 // databases rather than one with two schemas: it is the cheapest way to make sure no query can
-// ever join across a module boundary by accident.
+// ever join across a bounded context boundary by accident.
 var employeeDatabase = postgres.AddDatabase("employeedb");
 var absenceDatabase = postgres.AddDatabase("absencedb");
 
@@ -1617,8 +1620,8 @@ What each call is responsible for:
 | `WithUrlForEndpoint("http", …)`          | Adds a second link on the resource, here `/scalar/v1`, resolved against that endpoint's address |
 
 The link between the two sides is the resource name and nothing else: `postgres.AddDatabase("employeedb")`
-and `EmployeesModule.ConnectionStringName == "employeedb"`. `WithReference` turns that into the
-environment variable `ConnectionStrings__employeedb`, which the module reads through
+and `EmployeesBoundedContext.ConnectionStringName == "employeedb"`. `WithReference` turns that into the
+environment variable `ConnectionStrings__employeedb`, which the bounded context reads through
 `builder.Configuration.GetConnectionString(…)`. No connection string is written into a file, and none
 is checked into the repository.
 
@@ -1700,23 +1703,23 @@ aspire run
 The first start pulls the PostgreSQL and pgAdmin images and takes a moment. Then the dashboard opens
 at <http://localhost:15246> and lists the resources:
 
-| Resource     | What it is                                                                   |
-| ------------ | ----------------------------------------------------------------------------- |
-| `postgres`   | The database container                                                        |
-| `pgadmin`    | The database UI, already connected                                            |
-| `employeedb` | The database of the Employees module                                          |
-| `absencedb`  | The database of the Absences module                                           |
-| `api`        | The web host with both modules, healthy once `/health` answers                |
+| Resource     | What it is                                                              |
+| ------------ | ----------------------------------------------------------------------- |
+| `postgres`   | The database container                                                  |
+| `pgadmin`    | The database UI, already connected                                      |
+| `employeedb` | The database of the Employees bounded context                           |
+| `absencedb`  | The database of the Absences bounded context                            |
+| `api`        | The web host with both bounded contexts, healthy once `/health` answers |
 
 Every resource shows its URL, its logs, its environment variables and its traces. Useful checks
 after the first start:
 
-| Check                | Where                                                                    |
-| -------------------- | ------------------------------------------------------------------------ |
-| The API is healthy   | `api` is green in the dashboard, `/health` returns `Healthy`             |
-| The endpoints are there | the "API docs" link on `api`, which lists every module's routes        |
-| The migrations ran   | the tables exist in pgAdmin, and the log of `api` shows the EF Core statements |
-| Telemetry arrives    | the traces of a request show up under `api` in the dashboard              |
+| Check                   | Where                                                                          |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| The API is healthy      | `api` is green in the dashboard, `/health` returns `Healthy`                   |
+| The endpoints are there | the "API docs" link on `api`, which lists every bounded context's routes       |
+| The migrations ran      | the tables exist in pgAdmin, and the log of `api` shows the EF Core statements |
+| Telemetry arrives       | the traces of a request show up under `api` in the dashboard                   |
 
 The API port is assigned by Aspire and changes between runs, the dashboard is the place to look it
 up. That is intentional: nothing in the repository hardcodes it.
@@ -2097,8 +2100,8 @@ Eleven projects, two axes of tags. **Tags live in the `nx` key of each `package.
 | `packages/absences/data-access`  | `scope:absences`, `type:data-access`  | Query hooks and types of the absences area       |
 | `packages/absences/feature`      | `scope:absences`, `type:feature`      | Pages and forms of the absences area             |
 
-The layout mirrors the backend: a feature area on the frontend is what a module is on the backend,
-and `type:` is what the four project layers are inside a module.
+The layout mirrors the backend: a feature area on the frontend is what a bounded context is on the
+backend, and `type:` is what the four project layers are inside one.
 
 ### Shared configuration
 
@@ -2429,10 +2432,10 @@ The `scope:` axis says which feature area may use which:
 | `scope:employees` | `employees`, `shared`             |
 | `scope:shared`    | `shared`                          |
 
-`absences` may reach into `employees` because the backend allows the same edge: the absences module
-asks the employees module for the employee list. The edge is one directional — `employees` may not
-depend on `absences` — and because both axes apply at once, the only import that actually passes is
-`absences-feature` → `employees-data-access`. A feature importing another area's *pages* fails,
+`absences` may reach into `employees` because the backend allows the same edge: the absences bounded
+context asks the employees one for the employee list. The edge is one directional — `employees` may
+not depend on `absences` — and because both axes apply at once, the only import that actually passes
+is `absences-feature` → `employees-data-access`. A feature importing another area's *pages* fails,
 which is the case worth preventing.
 
 **`eslint.config.mjs`** (root, and after step 5 above the only ESLint file in the workspace). It
@@ -2625,7 +2628,7 @@ path outside the project, so `Directory.Build.props` gets the repository root as
 ```
 
 ```bash
-dotnet add src/Host/AbsenceManagement.Api package Microsoft.Extensions.ApiDescription.Server
+dotnet add src/Hosts/AbsenceManagement.Api package Microsoft.Extensions.ApiDescription.Server
 ```
 
 Mark it build-only with `PrivateAssets="all"` and point it at the frontend, in
@@ -2644,10 +2647,10 @@ can use the file as a cache input.
 
 To read the routes, the tool starts the host in a process of its own (`GetDocument.Insider`) and
 stops it right after `builder.Build()`. Nothing is served and no connection is opened — but the
-modules still run their registration and fail fast when a connection string is missing. That
-fail-fast is worth keeping, so `Program.cs` hands out a placeholder instead of weakening the check,
-through the `AddPlaceholderConnectionStrings` call that is already there. **Every new module has to
-be added to that call**, otherwise `dotnet build` fails.
+bounded contexts still run their registration and fail fast when a connection string is missing.
+That fail-fast is worth keeping, so `Program.cs` hands out a placeholder instead of weakening the
+check, through the `AddPlaceholderConnectionStrings` call that is already there. **Every new bounded
+context has to be added to that call**, otherwise `dotnet build` fails.
 
 **Step 2 — endpoints describe themselves.** This is already the case: every endpoint carries
 `.WithName(…)`, `.Produces<T>(…)` and `.ProducesProblems(…)`. The name becomes the TypeScript

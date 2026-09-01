@@ -7,8 +7,9 @@ namespace Common.UnitTests.Api;
 
 /// <summary>
 ///     The single translation from a business <see cref="Error" /> to an HTTP response. Every
-///     module goes through it, so an endpoint never picks a status code of its own - and the
-///     frontend reads what comes out of it. Pinned here rather than in the endpoints that use it.
+///     bounded context goes through it, so an endpoint never picks a status code of its own - and
+///     the frontend reads what comes out of it. Pinned here rather than in the endpoints that use
+///     it.
 /// </summary>
 public class ResultExtensionsTests
 {

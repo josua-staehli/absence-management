@@ -1,7 +1,8 @@
 ﻿namespace Common.Infrastructure.Database;
 
 /// <summary>
-///     Migrates and seeds the tables of one module. Every module brings its own implementation.
+///     Migrates and seeds the tables of one bounded context. Every one of them brings its own
+///     implementation.
 /// </summary>
 public interface IDbInitializer
 {

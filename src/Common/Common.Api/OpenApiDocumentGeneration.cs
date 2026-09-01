@@ -9,9 +9,9 @@ namespace Common.Api;
 ///     (<c>Microsoft.Extensions.ApiDescription.Server</c>, see the API project's csproj).
 ///     To read the routes, the tool starts the host in a process of its own and stops it right
 ///     after <c>builder.Build()</c>. Nothing is ever served and no connection is ever opened - but
-///     the modules still run their registration, and those fail fast when a connection string is
-///     missing. That fail-fast is worth keeping, so the host hands out a placeholder instead of
-///     weakening the check.
+///     the bounded contexts still run their registration, and those fail fast when a connection
+///     string is missing. That fail-fast is worth keeping, so the host hands out a placeholder
+///     instead of weakening the check.
 /// </summary>
 public static class OpenApiDocumentGeneration
 {
@@ -19,8 +19,8 @@ public static class OpenApiDocumentGeneration
     private const string ToolAssemblyName = "GetDocument.Insider";
 
     /// <summary>
-    ///     Never opened - it only has to get past the modules' "is it configured?" check and be
-    ///     parseable by the provider chosen in <c>Common.Infrastructure</c>.
+    ///     Never opened - it only has to get past the bounded contexts' "is it configured?" check
+    ///     and be parseable by the provider chosen in <c>Common.Infrastructure</c>.
     /// </summary>
     private const string PlaceholderConnectionString =
         "Host=openapi-document-generation;Database=none;Username=none;Password=none";

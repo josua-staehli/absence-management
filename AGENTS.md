@@ -7,12 +7,12 @@ overview and [docs/BOOTSTRAP.md](docs/BOOTSTRAP.md) for how the repository was b
 
 ```text
 src/                the backend
-src/Common/         building blocks every DDD module reuses
-src/Modules/        modules fitting into the DDD pattern (bounded contexts)
-src/Host/           the web host that mounts the modules
+src/Common/         building blocks every bounded context reuses
+src/Contexts/       one folder per bounded context, four projects each
+src/Hosts/          the web host that mounts the bounded contexts
 tests/              tests for the backend
-tests/Modules/      one test project per module
-tests/Architecture/ rules that hold across all modules, checked with ArchUnitNET
+tests/Contexts/     one test project per bounded context
+tests/Architecture/ rules that hold across all contexts, checked with ArchUnitNET
 aspire/             the AppHost: which resources run and how they depend on each other
 frontend/           the frontend built as Nx workspace, apps and packages
 ```
@@ -38,9 +38,14 @@ cd frontend && pnpm check   # typecheck + oxlint + boundaries + formatting check
 - Central package management. No `Version=` in a `.csproj`, versions go into
   `Directory.Packages.props`. `TargetFramework`, `Nullable` and `ImplicitUsings` come from
   `Directory.Build.props`. Do not repeat them.
-- Module boundary. `Absences.Application` references `Employees.Contracts` and nothing else of
-  `Employees.*`. Cross-module data is joined in the application layer, never in SQL. The two
-  modules own separate databases, so there is no foreign key and no join across them.
+- One bounded context is one domain boundary and one physical unit: the folder
+  `src/Contexts/<Name>/` with the four `<Name>.Api|Application|Infrastructure|Domain` projects.
+  Folders, projects and code all say the same word - `AddBoundedContext`,
+  `BoundedContextDbContext`, `BoundedContextBoundaryTests` - so there is no second vocabulary to
+  translate. A new domain boundary gets its own folder, and none is ever split across two.
+- Context boundary. `Absences.Application` references `Employees.Contracts` and nothing else of
+  `Employees.*`. Data from another context is joined in the application layer, never in SQL. The
+  two own separate databases, so there is no foreign key and no join across them.
 - Business failures are values, not exceptions: return `Result` / `Result<T>` carrying an
   `Error`. `ToHttpResult()` maps `Validation` → 400, `NotFound` → 404, `Conflict` → 409.
 - Handlers, repositories and queries are `internal`. Tests reach them through
@@ -48,18 +53,18 @@ cd frontend && pnpm check   # typecheck + oxlint + boundaries + formatting check
 - Endpoints carry `.WithName()`, `.Produces<T>()` and `.ProducesProblems(...)`. They generate
   the OpenAPI document and therefore the TypeScript client. Return a declared response record, not
   an anonymous object.
-- Adding a module in `Program.cs`: the name in
-  `AddPlaceholderConnectionStrings`, `Add<Name>Module()` and `Map<Name>Module()`.
+- Adding a bounded context in `Program.cs`: the name in `AddPlaceholderConnectionStrings`,
+  `Add<Name>BoundedContext()` and `Map<Name>BoundedContext()`.
 - Use case tests run the real handlers and EF Core mapping against in-memory SQLite, domain tests
   need no fixture at all.
-- The rules above the layering, the module boundary and the `internal` conventions are checked by
-  `tests/Architecture/`. No rule there names a module: they are regular expressions over the
-  `<Module>.<Layer>` naming, so a new module is covered by being mounted in the host.
+- The rules above the layering, the context boundary and the `internal` conventions are checked by
+  `tests/Architecture/`. No rule there names a bounded context: they are regular expressions over
+  the `<Name>.<Layer>` naming, so a new one is covered by being mounted in the host.
 
 Migrations are generated, never written by hand:
 
 ```bash
-dotnet ef migrations add <Name> --project src/Modules/<Module>/<Module>.Infrastructure --output-dir Persistence/Migrations
+dotnet ef migrations add <Migration> --project src/Contexts/<Name>/<Name>.Infrastructure --output-dir Persistence/Migrations
 ```
 
 ## Frontend rules
