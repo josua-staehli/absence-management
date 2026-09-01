@@ -36,7 +36,7 @@ ports change per run, find them in the dashboard at <http://localhost:15246>.
 To run individual parts:
 
 ```bash
-dotnet run --project src/Host/AbsenceManagement.Api   # API: http://localhost:5180/scalar/v1
+dotnet run --project src/Hosts/AbsenceManagement.Api   # API: http://localhost:5180/scalar/v1
 ```
 
 From `frontend/` (with the standalone API available):
@@ -52,8 +52,8 @@ pnpm storybook   # Shared UI: http://localhost:4400
 ```bash
 dotnet build
 dotnet test
-dotnet build src/Modules/Absences/Absences.Application
-dotnet test tests/Modules/Absences.UnitTests
+dotnet build src/Contexts/Absences/Absences.Application
+dotnet test tests/Contexts/Absences.UnitTests
 dotnet test --filter "FullyQualifiedName~AbsenceTests"
 dotnet format --verify-no-changes
 dotnet format   # Apply formatting
@@ -66,26 +66,27 @@ Build output goes to `artifacts/`.
 Package versions belong in `Directory.Packages.props`, not in project files.
 
 ```bash
-dotnet add src/Modules/Absences/Absences.Application package <PackageId>
-dotnet add src/Modules/Absences/Absences.Api reference src/Modules/Absences/Absences.Infrastructure
+dotnet add src/Contexts/Absences/Absences.Application package <PackageId>
+dotnet add src/Contexts/Absences/Absences.Api reference src/Contexts/Absences/Absences.Infrastructure
 dotnet sln AbsenceManagement.slnx add <project-path>
 dotnet list package --outdated
 ```
 
 ### Entity Framework migrations
 
-Generate migrations, never write them by hand. Replace the module in the project path as needed.
+Generate migrations, never write them by hand. Replace the bounded context in the project path as
+needed.
 
 ```bash
 dotnet ef migrations add <Name> \
-  --project src/Modules/Absences/Absences.Infrastructure \
+  --project src/Contexts/Absences/Absences.Infrastructure \
   --output-dir Persistence/Migrations
-dotnet ef migrations list --project src/Modules/Absences/Absences.Infrastructure
-dotnet ef migrations remove --project src/Modules/Absences/Absences.Infrastructure
+dotnet ef migrations list --project src/Contexts/Absences/Absences.Infrastructure
+dotnet ef migrations remove --project src/Contexts/Absences/Absences.Infrastructure
 ```
 
-Each module applies its own migrations at startup. `migrations remove` is only for the latest
-unapplied migration. `dotnet ef database update` is not part of the normal workflow.
+Each bounded context applies its own migrations at startup. `migrations remove` is only for the
+latest unapplied migration. `dotnet ef database update` is not part of the normal workflow.
 
 ## Frontend
 

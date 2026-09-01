@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Contexts\Employees\Employees.Api\Employees.Api.csproj" />
+    <ProjectReference Include="..\..\Contexts\Absences\Absences.Api\Absences.Api.csproj" />
+    <ProjectReference Include="..\AbsenceManagement.ServiceDefaults\AbsenceManagement.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Scalar.AspNetCore" />
+  </ItemGroup>
+
+  <!--
+    Every build writes the OpenAPI document the frontend generates its client from. It lands under
+    frontend/ on purpose: the frontend build never needs a .NET SDK, and Nx can use the file as a
+    cache input. See Common.Api/OpenApiDocumentGeneration.cs for how the host survives being
+    started without a database while the document is written.
+  -->
+  <PropertyGroup>
+    <OpenApiGenerateDocuments>true</OpenApiGenerateDocuments>
+    <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
+    <OpenApiDocumentsDirectory>$(RepoRoot)frontend/openapi</OpenApiDocumentsDirectory>
+  </PropertyGroup>
+
+</Project>

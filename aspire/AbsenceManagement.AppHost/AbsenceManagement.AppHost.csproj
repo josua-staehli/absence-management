@@ -1,7 +1,7 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.5.0">
+<Project Sdk="Aspire.AppHost.Sdk/13.5.3">
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Host\AbsenceManagement.Api\AbsenceManagement.Api.csproj" />
+    <ProjectReference Include="..\..\src\Hosts\AbsenceManagement.Api\AbsenceManagement.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>

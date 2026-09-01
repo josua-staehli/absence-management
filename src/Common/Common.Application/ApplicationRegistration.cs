@@ -16,7 +16,7 @@ public static class ApplicationRegistration
     /// <summary>
     ///     Registers every command and query handler of the assembly that contains
     ///     <typeparamref name="TMarker" />. A new use case therefore only needs a new class -
-    ///     no change to the composition root, and no change when a module is added.
+    ///     no change to the composition root, and no change when a bounded context is added.
     /// </summary>
     public static IServiceCollection AddHandlersFromAssemblyOf<TMarker>(
         this IServiceCollection services)

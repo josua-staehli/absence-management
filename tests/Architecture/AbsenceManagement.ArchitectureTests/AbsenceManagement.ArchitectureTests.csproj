@@ -20,12 +20,12 @@
 
   <ItemGroup>
     <!--
-      Copy the host and its referenced module assemblies to the test output for inspection.
-      No change is needed here if a new module is added.
+      Copy the host and its referenced bounded context assemblies to the test output for
+      inspection. No change is needed here if a new bounded context is added.
     -->
-    <ProjectReference Include="..\..\..\src\Host\AbsenceManagement.Api\AbsenceManagement.Api.csproj" />
-    <!-- Discover modules through their Domain projects, even before they are mounted in the host. -->
-    <ProjectReference Include="..\..\..\src\Modules\*\*.Domain\*.Domain.csproj" />
+    <ProjectReference Include="..\..\..\src\Hosts\AbsenceManagement.Api\AbsenceManagement.Api.csproj" />
+    <!-- Discover contexts through their Domain projects, even before they are mounted in the host. -->
+    <ProjectReference Include="..\..\..\src\Contexts\*\*.Domain\*.Domain.csproj" />
   </ItemGroup>
 
 </Project>

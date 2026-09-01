@@ -6,9 +6,10 @@ using static AbsenceManagement.ArchitectureTests.SolutionArchitecture;
 namespace AbsenceManagement.ArchitectureTests;
 
 /// <summary>
-///     The layering inside a module. Most of it is already true because the layers are separate
-///     projects and the compiler refuses the reference that would break them. What these tests add
-///     is the step before that: adding the ProjectReference in the first place now fails a test.
+///     The layering inside a bounded context. Most of it is already true because the layers are
+///     separate projects and the compiler refuses the reference that would break them. What these
+///     tests add is the step before that: adding the ProjectReference in the first place now fails
+///     a test.
 /// </summary>
 public sealed class LayerTests
 {

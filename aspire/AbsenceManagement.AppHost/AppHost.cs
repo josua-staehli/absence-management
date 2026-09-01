@@ -10,9 +10,9 @@ var postgres = builder.AddPostgres("postgres")
     .WithLifetime(ContainerLifetime.Persistent)
     .WithPgAdmin();
 
-// One database per module, named after the connection string that module asks for. Separate
+// One database per bounded context, named after the connection string that one asks for. Separate
 // databases rather than one with two schemas: it is the cheapest way to make sure no query can
-// ever join across a module boundary by accident.
+// ever join across a bounded context boundary by accident.
 var employeeDatabase = postgres.AddDatabase("employeedb");
 var absenceDatabase = postgres.AddDatabase("absencedb");
 

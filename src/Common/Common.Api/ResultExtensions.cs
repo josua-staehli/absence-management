@@ -7,7 +7,7 @@ namespace Common.Api;
 /// <summary>
 ///     Single place where a business <see cref="Error" /> becomes an HTTP response.
 ///     Failures are returned as RFC 9457 problem details, so the frontend can display them
-///     uniformly for every module, without repeating the mapping.
+///     uniformly for every bounded context, without repeating the mapping.
 /// </summary>
 public static class ResultExtensions
 {

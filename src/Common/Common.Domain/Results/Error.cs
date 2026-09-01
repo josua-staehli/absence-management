@@ -15,7 +15,10 @@ public enum ErrorType
 ///     A business error. Errors are values, not exceptions: expected failures travel through
 ///     <see cref="Result" /> instead of the exception pipeline.
 /// </summary>
-/// <param name="Code">Stable, machine-readable identifier, e.g. <c>MyModule.OverlappingDate</c>.</param>
+/// <param name="Code">
+///     Stable, machine-readable identifier, prefixed with the bounded context that owns it, e.g.
+///     <c>Absences.Overlapping</c>.
+/// </param>
 /// <param name="Message">Human-readable description, shown in the UI.</param>
 public sealed record Error(string Code, string Message, ErrorType Type)
 {

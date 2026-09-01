@@ -6,10 +6,11 @@ namespace Common.Infrastructure;
 public static class InfrastructureRegistration
 {
     /// <summary>
-    ///     Registers the <c>DbContext</c> of a module with the connection and provider settings
-    ///     that are the same for every module. This method decides which database is used.
+    ///     Registers the <c>DbContext</c> of a bounded context with the connection and provider
+    ///     settings that are the same for every one of them. This method decides which database is
+    ///     used.
     /// </summary>
-    public static IServiceCollection AddModuleDbContext<TContext>(
+    public static IServiceCollection AddBoundedContextDbContext<TContext>(
         this IServiceCollection services,
         string connectionString)
         where TContext : DbContext

@@ -3,9 +3,9 @@
 A web application to create and manage absences of employees.
 
 Employees file absence requests, approvers decide them. The backend is a modular monolith in .NET
-with a DDD-oriented layering per module using Clean Architecture. The frontend is an Nx workspace
-with two React applications, `web` for employees and `admin` for approvers. .NET Aspire starts
-everything: database, API and both dev servers.
+with a DDD-oriented layering per bounded context using Clean Architecture. The frontend is an Nx
+workspace with two React applications, `web` for employees and `admin` for approvers. .NET Aspire
+starts everything: database, API and both dev servers.
 
 | Part      | Stack                                                                    |
 | --------- | ------------------------------------------------------------------------ |
@@ -17,12 +17,12 @@ everything: database, API and both dev servers.
 
 ```text
 src/                the backend
-src/Common/         building blocks every DDD module reuses
-src/Modules/        modules fitting into the DDD pattern (bounded contexts)
-src/Host/           the web host that mounts the modules
+src/Common/         building blocks every bounded context reuses
+src/Contexts/       one folder per bounded context, four projects each
+src/Hosts/          the web host that mounts the bounded contexts
 tests/              tests for the backend
-tests/Modules/      one test project per module
-tests/Architecture/ rules that hold across all modules, checked with ArchUnitNET
+tests/Contexts/     one test project per bounded context
+tests/Architecture/ rules that hold across all contexts, checked with ArchUnitNET
 aspire/             the AppHost: which resources run and how they depend on each other
 frontend/           the frontend built as Nx workspace, apps and packages
 ```
@@ -37,7 +37,7 @@ runtime (Docker Desktop or Podman), and Node 22.12 or newer with pnpm enabled vi
 dotnet run --project aspire/AbsenceManagement.AppHost
 ```
 
-Aspire takes care of the rest: it starts the PostgreSQL container, hands each module its
+Aspire takes care of the rest: it starts the PostgreSQL container, hands each bounded context its
 connection string, runs `pnpm install`, regenerates the API client, and only then brings up the
 two dev servers.
 
@@ -87,10 +87,10 @@ cd frontend && pnpm test && pnpm check
 
 ## Architectural overview
 
-The Aspire AppHost (orchestrator) starts the API web host, which mounts one module per bounded
-context, and the React applications talk to the API over HTTP. Inside a module the dependencies
-point inwards, from `Api` over `Infrastructure` and `Application` to `Domain`, and every module
-owns its database. Modules never reference each other directly: `Absences` depends on the
-`Contracts` project of `Employees`. `Common` holds the building blocks all of them reuse.
+The Aspire AppHost (orchestrator) starts the API web host, which mounts one bounded context per
+domain boundary, and the React applications talk to the API over HTTP. Inside a bounded context the
+dependencies point inwards, from `Api` over `Infrastructure` and `Application` to `Domain`, and
+every one of them owns its database. They never reference each other directly: `Absences` depends
+on the `Contracts` project of `Employees`. `Common` holds the building blocks all of them reuse.
 
 ![Architectural overview](docs/architectural_overview.png)

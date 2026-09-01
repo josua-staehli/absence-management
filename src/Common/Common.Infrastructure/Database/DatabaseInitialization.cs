@@ -12,10 +12,10 @@ public static class DatabaseInitialization
     }
 
     /// <summary>
-    ///     Runs the initializer of every registered module. The host calls this once on startup in
-    ///     development.
+    ///     Runs the initializer of every registered bounded context. The host calls this once on
+    ///     startup in development.
     /// </summary>
-    public static async Task InitializeModulesAsync(
+    public static async Task InitializeBoundedContextsAsync(
         this IServiceProvider serviceProvider,
         CancellationToken cancellationToken = default)
     {
