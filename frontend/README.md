@@ -19,9 +19,9 @@ packages/shared/      api-client, i18n and ui, usable by every area
 openapi/           the OpenAPI document written by `dotnet build`, checked in
 ```
 
-Two axes of tags decide who may import whom, enforced by `pnpm boundaries`: `scope:` is the feature
-area (`absences`, `employees`, `shared`, `app`), `type:` is the layer (`app`, `feature`,
-`data-access`, `ui`, `util`, `e2e`).
+Two axes of tags decide who may import whom, enforced by Nx's module-boundary rule during
+`pnpm lint`: `scope:` is the feature area (`absences`, `employees`, `shared`, `app`), `type:` is
+the layer (`app`, `feature`, `data-access`, `ui`, `util`, `e2e`).
 
 ## Running it
 
@@ -54,15 +54,15 @@ pnpm check
 | Command             | Checks                                                         |
 | ------------------- | -------------------------------------------------------------- |
 | `pnpm typecheck`    | Every project compiles, including against the generated client |
-| `pnpm lint`         | oxlint over the whole workspace                                |
-| `pnpm boundaries`   | No import crosses a layer or feature-area boundary             |
+| `pnpm lint`         | oxlint, including Nx's module-boundary rule                    |
 | `pnpm format:check` | Verifies formatting with oxfmt                                 |
 | `pnpm test`         | Vitest, per project                                            |
 | `pnpm e2e`          | Playwright, one project per application, against the built app |
 | `pnpm build`        | Regenerates the API client, then builds both applications      |
 
-`pnpm check` runs the first four. Linting and formatting are oxlint and oxfmt, not ESLint and
-Prettier; ESLint is kept for the one architecture rule that needs the Nx project graph.
+`pnpm check` runs the first three. Linting and formatting are oxlint and oxfmt. Nx 23.2's
+experimental `@nx/oxlint` bridge exposes the project-graph-aware boundary rule to oxlint, so no
+ESLint configuration or command is needed.
 
 ## The API client
 

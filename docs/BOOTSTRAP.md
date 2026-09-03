@@ -1759,9 +1759,9 @@ The toolchain:
 | Mantine               | The UI library. CSS based, no runtime styling engine, no Emotion            |
 | TanStack Query        | Server state: caching, invalidation, request de-duplication                 |
 | react-i18next         | The English and German texts, with the keys checked by the compiler         |
-| oxlint                | The linter for everything except the architecture rule                      |
+| oxlint                | The linter, including Nx's project-graph-aware architecture rule            |
 | oxfmt                 | The formatter, in place of Prettier                                         |
-| ESLint                | Kept for exactly one rule: `@nx/enforce-module-boundaries`                  |
+| `@nx/oxlint`          | Experimental bridge that exposes `@nx/enforce-module-boundaries` to oxlint  |
 | Vitest                | Unit tests, per project                                                     |
 | Playwright            | End-to-end tests, one project per application                               |
 | `@hey-api/openapi-ts` | Generates the typed API client from the OpenAPI document of the backend     |
@@ -1795,7 +1795,7 @@ What the command writes:
 | `apps/web`                            | The application named by `--appName`: React 19, `vite.config.mts` with the Vitest block inside it  |
 | `apps/web-e2e`                        | Its Playwright project, with an `implicitDependencies` entry back to the application               |
 | `nx.json`                             | The plugins that infer the targets: `@nx/js/typescript`, `@nx/eslint`, `@nx/vite`, `@nx/vitest`, `@nx/playwright` |
-| `package.json`                        | Named `@frontend/source` — the npm scope is the name of the workspace folder. React 19, Vite 8, Vitest 4, TypeScript 6, Playwright and the full ESLint stack |
+| `package.json`                        | Named `@frontend/source` — the npm scope is the name of the workspace folder. React 19, Vite 8, Vitest 4, TypeScript 6, Playwright and the generated ESLint setup |
 | `pnpm-workspace.yaml`                 | The `packages:` glob `apps/*`, plus `autoInstallPeers` and `allowBuilds`                           |
 | `tsconfig.base.json`, `tsconfig.json` | The shared compiler options, and the solution-style project references with one entry per project  |
 | `vitest.config.ts`                    | Collects the per-project Vitest configurations into one run                                        |
@@ -1861,12 +1861,11 @@ covers the validation of the request form. `i18next` and `react-i18next` are ins
 because the error interceptor of the API client already needs them, see
 [Texts and languages](#texts-and-languages).
 
-Development dependencies — Mantine's PostCSS preset, the Oxc tools, the parser for the one ESLint
-rule that stays, and the client generator. `eslint` and `@nx/eslint-plugin` are missing from this
-list because the creation command has already installed them:
+Development dependencies — Mantine's PostCSS preset, the Oxc tools, Nx's Oxlint integration, and
+the client generator:
 
 ```bash
-pnpm add -w -D postcss postcss-preset-mantine postcss-simple-vars oxlint oxfmt @typescript-eslint/parser @hey-api/openapi-ts
+pnpm add -w -D postcss postcss-preset-mantine postcss-simple-vars oxlint oxfmt @nx/oxlint @hey-api/openapi-ts
 ```
 
 Then a set of corrections to what the creation command and the generators wrote:
@@ -1915,22 +1914,21 @@ Then a set of corrections to what the creation command and the generators wrote:
 5. **Drop the ESLint setup of the preset.** The workspace arrives with an `eslint.config.mjs` at
    the root and one in every project under `apps/` — the two from the creation command and the two
    from the application generator, which was not given `--linter=none` — plus an `@nx/eslint/plugin`
-   entry in the `plugins` array of `nx.json` and eleven ESLint packages, nine of them for rules this
-   workspace does not run. It lints with oxlint and keeps ESLint for exactly one rule, so the
-   per-project configurations and the plugin entry go, and the root configuration is replaced by the
-   one in [Enforced boundaries](#enforced-boundaries):
+   entry in the `plugins` array of `nx.json` and the ESLint dependency stack. Delete all of those;
+   oxlint handles both code quality and architecture through `@nx/oxlint`:
 
    ```bash
-   Remove-Item -Force -ErrorAction Ignore apps/*/eslint.config.mjs
+   Remove-Item -Force -ErrorAction Ignore eslint.config.mjs, apps/*/eslint.config.mjs
    ```
 
    ```bash
-   pnpm remove -w @nx/eslint @eslint/js typescript-eslint eslint-config-prettier eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-playwright eslint-plugin-react eslint-plugin-react-hooks
+   pnpm remove -w eslint @nx/eslint @nx/eslint-plugin @eslint/js typescript-eslint @typescript-eslint/parser eslint-config-prettier eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-playwright eslint-plugin-react eslint-plugin-react-hooks
    ```
 
-   What stays is `eslint`, `@nx/eslint-plugin` — which is where `@nx/enforce-module-boundaries`
-   comes from — and the `@typescript-eslint/parser` added above, because that one rule still has to
-   read TypeScript and JSX.
+   Also remove the ESLint configuration exclusions generated in the app and e2e `tsconfig` files,
+   and the `.eslintrc.json` / `eslint.config.mjs` exclusions under `namedInputs.production` in
+   `nx.json`. The boundary configuration moves into `.oxlintrc.json`; see
+   [Enforced boundaries](#enforced-boundaries).
 
 6. **Remove the routing scaffold.** `--routing` defaults to `true` and was passed explicitly to
    the application generator, so `react-router-dom` is a dependency of the root `package.json` and
@@ -1985,9 +1983,8 @@ Then a set of corrections to what the creation command and the generators wrote:
 14. **Correct the editor recommendations.** `.vscode/extensions.json` is generated with
     `esbenp.prettier-vscode` in it, a formatter this workspace does not use. It is replaced by
     `oxc.oxc-vscode`, the Oxc extension, which shows the oxlint diagnostics while typing and
-    formats with oxfmt. `dbaeumer.vscode-eslint` stays next to it, because ESLint is still what
-    runs the one boundary rule; Nx Console and the Playwright extension are kept as generated. The
-    file is the only thing under `.vscode/` that is committed.
+    formats with oxfmt. The ESLint extension is removed; Nx Console and the Playwright extension
+    are kept as generated. The file is the only thing under `.vscode/` that is committed.
 
 The `nx-welcome.tsx` component and its import in `app.tsx` can be deleted from both applications,
 together with the `app.module.css` next to it; `styles.css` stays, it is where the global stylesheet
@@ -2063,7 +2060,6 @@ frontend/
 ├─ .gitignore                               only what the JavaScript toolchain generates
 ├─ .oxfmtrc.json                            oxfmt
 ├─ .oxlintrc.json                           oxlint
-├─ eslint.config.mjs                        one rule: @nx/enforce-module-boundaries
 ├─ nx.json                                  the Nx plugins and their target names
 ├─ openapi-ts.config.ts                     how the API client is generated
 ├─ package.json                             every runtime dependency, and the scripts
@@ -2120,10 +2116,9 @@ backend, and `type:` is what the four project layers are inside one.
   "typecheck": "nx run-many -t typecheck --args=--force",
   "lint": "oxlint",
   "lint:fix": "oxlint --fix",
-  "boundaries": "eslint .",
   "format": "oxfmt",
   "format:check": "oxfmt --check",
-  "check": "pnpm typecheck && pnpm lint && pnpm boundaries && pnpm format:check",
+  "check": "pnpm typecheck && pnpm lint && pnpm format:check",
   "graph": "nx graph",
   "storybook": "nx run @absence-management/shared-ui:storybook",
   "build-storybook": "nx run @absence-management/shared-ui:build-storybook"
@@ -2139,7 +2134,8 @@ need happens once, in the `api-client` resource.
 incremental state can report success right after `pnpm gen:api` rewrote the generated types
 underneath it — a false pass on exactly the check that matters most here.
 
-`lint` and `boundaries` are two commands on purpose, see [The Oxc toolchain](#the-oxc-toolchain).
+`lint` also runs Nx's module-boundary rule through the bridge configured in `.oxlintrc.json`; see
+[The Oxc toolchain](#the-oxc-toolchain).
 
 **`pnpm-workspace.yaml`** — the `packages:` globs are maintained by Nx, one line per folder that
 holds projects; `autoInstallPeers` and three of the `allowBuilds` entries come from the creation
@@ -2273,9 +2269,9 @@ Mantine calls the first one while it mounts. The file stubs both, and `setupFile
 for every project, so a test that renders a page fails on its assertion rather than on the
 environment.
 
-The import of this file out of `apps/*/vite.config.mts` crosses a project boundary by path, which
-is why it is in the `allow` list of the boundary rule below and why `vite.config.mts` is no longer
-part of the spec project (step 9 above).
+The import of the shared Vite setup from `apps/*/vite.config.mts` crosses a project boundary by
+path, which is why `vite.shared.mjs` is in the `allow` list of the boundary rule below and
+`vite.config.mts` is no longer part of the spec project (step 9 above).
 
 **`tsconfig.json`** (root) — the `references` array is not written by hand. The generators add an
 entry per project, and `nx sync` keeps it and the per-project references in step with the package
@@ -2283,8 +2279,8 @@ dependencies, which is the third of the three boundary checks below.
 
 ### The Oxc toolchain
 
-Oxc replaces the JavaScript-based tools with Rust ones. Four of the five replacements drop in
-without friction; the fifth is the reason ESLint does not disappear completely:
+Oxc replaces the JavaScript-based tools with Rust ones. Nx 23.2 completes the move by exposing its
+project-graph-aware boundary rule to Oxlint:
 
 | Was                          | Is now           | How it arrives                                 |
 | ---------------------------- | ---------------- | ---------------------------------------------- |
@@ -2293,17 +2289,21 @@ without friction; the fifth is the reason ESLint does not disappear completely:
 | Babel (React Fast Refresh)   | Oxc              | `@vitejs/plugin-react` 6, nothing to configure  |
 | ESLint (code quality)        | oxlint           | `.oxlintrc.json`                               |
 | Prettier                     | oxfmt            | `.oxfmtrc.json`                                |
-| ESLint (architecture rule)   | **still ESLint** | `eslint.config.mjs`, one rule                  |
+| ESLint (architecture rule)   | Nx through oxlint | `@nx/oxlint/boundaries-plugin`                |
 
 Vite 8 and `@vitejs/plugin-react` 6 are installed by the creation command, so the first three rows
-need no decision at all — they are what a current Nx workspace already builds with. Only the last
-three are configuration.
+need no decision at all — they are what a current Nx workspace already builds with. The last three
+are configured here. The Nx bridge is marked experimental: it relies on Oxlint's JavaScript plugin
+API, which Oxlint does not cover with semantic-versioning guarantees. This follows the
+[Nx module-boundary documentation](https://nx.dev/docs/features/enforce-module-boundaries).
 
 **`.oxlintrc.json`**:
 
 ```jsonc
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Nx reads the project graph and exposes its boundary rule as an Oxlint JavaScript plugin.
+  "jsPlugins": ["@nx/oxlint/boundaries-plugin"],
   // Setting `plugins` replaces the default set, so the defaults are repeated here. `vitest` is
   // not among them: its rules are about test files and would otherwise fire on production code.
   "plugins": ["eslint", "typescript", "unicorn", "oxc", "react", "jsx-a11y", "import", "promise"],
@@ -2322,6 +2322,40 @@ three are configuration.
   },
   "env": { "browser": true, "es2022": true },
   "rules": {
+    "@nx/enforce-module-boundaries": [
+      "error",
+      {
+        "enforceBuildableLibDependency": false,
+        "allow": ["^.*/vite\\.shared\\.mjs$"],
+        "depConstraints": [
+          {
+            "sourceTag": "scope:app",
+            "onlyDependOnLibsWithTags": ["scope:absences", "scope:employees", "scope:shared"]
+          },
+          {
+            "sourceTag": "scope:absences",
+            "onlyDependOnLibsWithTags": ["scope:absences", "scope:employees", "scope:shared"]
+          },
+          {
+            "sourceTag": "scope:employees",
+            "onlyDependOnLibsWithTags": ["scope:employees", "scope:shared"]
+          },
+          { "sourceTag": "scope:shared", "onlyDependOnLibsWithTags": ["scope:shared"] },
+          {
+            "sourceTag": "type:app",
+            "onlyDependOnLibsWithTags": ["type:feature", "type:ui", "type:util"]
+          },
+          {
+            "sourceTag": "type:feature",
+            "onlyDependOnLibsWithTags": ["type:data-access", "type:ui", "type:util"]
+          },
+          { "sourceTag": "type:data-access", "onlyDependOnLibsWithTags": ["type:util"] },
+          { "sourceTag": "type:ui", "onlyDependOnLibsWithTags": ["type:util"] },
+          { "sourceTag": "type:util", "onlyDependOnLibsWithTags": ["type:util"] },
+          { "sourceTag": "type:e2e", "onlyDependOnLibsWithTags": ["type:util"] }
+        ]
+      }
+    ],
     // The frontend talks to the API through the generated client only.
     "no-restricted-globals": ["error", "fetch", "XMLHttpRequest"],
     "no-console": "error",
@@ -2346,7 +2380,7 @@ three are configuration.
 Everything oxlint needs comes out of `node_modules`; `dist`, `.nx`, `test-output` and the rest are
 skipped because oxlint honours `.gitignore` by default.
 
-The two comments in that file come down to one property of the tool: oxlint exits non-zero for
+The category comments in that file come down to one property of the tool: oxlint exits non-zero for
 warnings as well as for errors, so a category is either enforced or off. `style` would fail
 `pnpm check` over unsorted object keys and named exports, and the `vitest` rules would fire on
 production code (`require-hook` on a `createRoot` call, for instance). The override at the bottom
@@ -2356,10 +2390,8 @@ The `react` plugin covers `eslint-plugin-react`, `eslint-plugin-react-hooks` and
 the hook rules that the ESLint setup of a generated Nx workspace provides are still there.
 
 Type-aware rules (`oxlint --type-aware`, plus the `oxlint-tsgolint` package) are **not** enabled.
-They run on `tsgo` and need TypeScript 7, and this workspace cannot move there yet: Nx 23 scaffolds
-TypeScript 6, and `@typescript-eslint/parser` 8 — the parser the one remaining ESLint rule runs on —
-declares `typescript` as `>=4.8.4 <6.1.0`. Turn them on when both catch up; `pnpm typecheck` covers
-the same ground in the meantime.
+They run on `tsgo` and need TypeScript 7, while Nx 23 scaffolds TypeScript 6. Turn them on when the
+workspace can move; `pnpm typecheck` covers the same ground in the meantime.
 
 **`.oxfmtrc.json`**:
 
@@ -2377,22 +2409,14 @@ indentation, 100 character lines, meant for the .NET side — out of this worksp
 `max_line_length`, so oxfmt's default line width applies. `oxfmt --migrate prettier` converts a
 `.prettierrc` if one is left over.
 
-**What stays on ESLint, and why.** The architecture rule of this workspace is
-`@nx/enforce-module-boundaries`. It reads the Nx project graph, which no other linter can do —
-oxlint has no equivalent, and `import/no-restricted-paths` is not implemented there either. So
-ESLint stays, with a configuration that contains that one rule and nothing else. There is no rule
-overlap between the two linters and therefore no need for `eslint-plugin-oxlint`, no shared plugin
-list to keep in sync, and no second opinion about code style:
-
-| Command           | Tool   | Checks                                                  |
-| ----------------- | ------ | ------------------------------------------------------- |
-| `pnpm lint`       | oxlint | Correctness, suspicious code, performance, hooks, accessibility, imports |
-| `pnpm boundaries` | ESLint | Only which project may depend on which                  |
-
-Both run over the whole workspace in one process instead of once per project, which is why neither
-is an Nx target: they finish faster than the graph computation that caching them would need. The
-`@nx/eslint/plugin` entry that the preset writes into `nx.json` — which would infer a per-project
-`lint` target — was removed with the rest of its ESLint setup, in step 5 above.
+**Nx boundaries inside Oxlint.** `@nx/oxlint/boundaries-plugin` registers
+`@nx/enforce-module-boundaries` as an Oxlint JavaScript rule. The rule still reads Nx's project
+graph and uses the same tag constraints, but `pnpm lint` now makes one pass for code-quality and
+architecture diagnostics. The workspace has no ESLint script, configuration, parser dependency,
+or editor extension. Some Nx packages still carry ESLint-related packages transitively as
+implementation details, but no repository check invokes the ESLint CLI. The generated
+`@nx/eslint/plugin` entry is also absent from `nx.json`; linting intentionally runs once over the
+whole workspace instead of as one inferred target per project.
 
 ### Enforced boundaries
 
@@ -2401,7 +2425,7 @@ times, at three different moments:
 
 | Check                                        | Command           | Fails when                                                  |
 | -------------------------------------------- | ----------------- | ----------------------------------------------------------- |
-| Nx tags, via `@nx/enforce-module-boundaries` | `pnpm boundaries` | A file imports a project the tags do not allow              |
+| Nx tags, via `@nx/enforce-module-boundaries` | `pnpm lint`       | A file imports a project the tags do not allow              |
 | pnpm `workspace:*` dependencies              | `pnpm install`    | A project imports a package it does not declare             |
 | TypeScript project references                | `pnpm typecheck`  | The reference graph does not match the package dependencies |
 
@@ -2438,91 +2462,8 @@ not depend on `absences` — and because both axes apply at once, the only impor
 is `absences-feature` → `employees-data-access`. A feature importing another area's *pages* fails,
 which is the case worth preventing.
 
-**`eslint.config.mjs`** (root, and after step 5 above the only ESLint file in the workspace). It
-replaces the one the creation command generated:
-
-```js
-import nx from '@nx/eslint-plugin';
-import tsParser from '@typescript-eslint/parser';
-
-export default [
-  // Registers the @nx plugin. It brings no rules of its own, which is the point:
-  // code style belongs to oxlint, this file is only about the dependency graph.
-  ...nx.configs['flat/base'],
-  {
-    ignores: [
-      '**/dist',
-      '**/out-tsc',
-      '**/test-output',
-      '**/storybook-static',
-      // Nx keeps a copy of every cached task output here, generated client included.
-      '**/.nx/**',
-      // The trailing /** is what makes ESLint skip the whole folder: without it the generated
-      // files are linted and their eslint-disable comments name rules this configuration does
-      // not load, which is an error of its own.
-      'packages/shared/api-client/src/generated/**',
-      '**/vite.config.*.timestamp*',
-    ],
-  },
-  {
-    files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.js', '**/*.jsx', '**/*.mjs'],
-    // flat/base sets no parser, and the default one cannot read TypeScript or JSX.
-    languageOptions: { parser: tsParser, ecmaVersion: 2024, sourceType: 'module' },
-    rules: {
-      /*
-       * The frontend counterpart of the backend's project references: checked by
-       * `pnpm boundaries`, so an accidental import across a layer or area boundary fails
-       * the build instead of quietly creating a tangle.
-       *
-       *   scope:*  - which feature area a library belongs to (absences, employees, shared)
-       *   type:*   - which layer it is (app, feature, data-access, ui, util, e2e)
-       */
-      '@nx/enforce-module-boundaries': [
-        'error',
-        {
-          // Every library here is source based - its package.json entry points at src/index.ts
-          // and the applications bundle it with Vite, so no library has a build target. With this
-          // flag on, the first import from an application would fail as a 'buildable library
-          // importing a non-buildable one'.
-          enforceBuildableLibDependency: false,
-          // Two files are imported by path rather than by package name: the ESLint
-          // configuration itself, and the Vite setup the two applications share.
-          allow: ['^.*/eslint\\.config\\.[cm]?[jt]s$', '^.*/vite\\.shared\\.mjs$'],
-          depConstraints: [
-            // --- feature areas ------------------------------------------------
-            {
-              sourceTag: 'scope:app',
-              onlyDependOnLibsWithTags: ['scope:absences', 'scope:employees', 'scope:shared'],
-            },
-            {
-              sourceTag: 'scope:absences',
-              onlyDependOnLibsWithTags: ['scope:absences', 'scope:employees', 'scope:shared'],
-            },
-            {
-              sourceTag: 'scope:employees',
-              onlyDependOnLibsWithTags: ['scope:employees', 'scope:shared'],
-            },
-            { sourceTag: 'scope:shared', onlyDependOnLibsWithTags: ['scope:shared'] },
-            // --- layers -------------------------------------------------------
-            {
-              sourceTag: 'type:app',
-              onlyDependOnLibsWithTags: ['type:feature', 'type:ui', 'type:util'],
-            },
-            {
-              sourceTag: 'type:feature',
-              onlyDependOnLibsWithTags: ['type:data-access', 'type:ui', 'type:util'],
-            },
-            { sourceTag: 'type:data-access', onlyDependOnLibsWithTags: ['type:util'] },
-            { sourceTag: 'type:ui', onlyDependOnLibsWithTags: ['type:util'] },
-            { sourceTag: 'type:util', onlyDependOnLibsWithTags: ['type:util'] },
-            { sourceTag: 'type:e2e', onlyDependOnLibsWithTags: ['type:util'] },
-          ],
-        },
-      ],
-    },
-  },
-];
-```
+The full rule configuration now lives in the `.oxlintrc.json` shown above. Every source project has
+one `scope:` tag and one `type:` tag, so both groups of constraints apply to every workspace import.
 
 **The `workspace:*` dependencies.** This is the part npm's hoisting lets you skip. pnpm gives every
 package a `node_modules` with exactly its declared dependencies, so a package that imports another
@@ -2596,9 +2537,9 @@ reference diagram on the backend side. Adding a forbidden import to check that t
 holds is worth the two minutes:
 
 ```text
-$ pnpm boundaries
+$ pnpm lint
   error  A project tagged with "type:ui" can only depend on projects tagged with "type:util"
-     @nx/enforce-module-boundaries
+     @nx(enforce-module-boundaries)
 ```
 
 ### The generated API client
@@ -2675,8 +2616,8 @@ export default defineConfig({
   output: {
     path: './packages/shared/api-client/src/generated',
     // Everything here is bundled by Vite, so extensionless relative imports are the least
-    // surprising. The folder is excluded from oxlint, oxfmt and ESLint - it is regenerated,
-    // not maintained.
+    // surprising. The folder is excluded from oxlint and oxfmt - it is regenerated, not
+    // maintained.
     importFileExtension: '',
   },
   plugins: [
@@ -3199,8 +3140,7 @@ pnpm check
 | Command             | Checks                                                              |
 | ------------------- | ------------------------------------------------------------------- |
 | `pnpm typecheck`    | Every project compiles, including against the generated client      |
-| `pnpm lint`         | oxlint over the whole workspace                                     |
-| `pnpm boundaries`   | No import crosses a layer or feature-area boundary                  |
+| `pnpm lint`         | oxlint, including Nx's module-boundary rule                          |
 | `pnpm format:check` | oxfmt                                                               |
 | `pnpm test`         | Vitest, per project                                                 |
 | `pnpm e2e`          | Playwright, one project per application, against the built app      |
@@ -3283,7 +3223,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Type check, oxlint, the Nx boundary rule and the formatting check.
+      # Type check, oxlint (including the Nx boundary rule) and the formatting check.
       - run: pnpm check
 
       # Vitest runs once rather than watching, because GitHub Actions sets CI=true.

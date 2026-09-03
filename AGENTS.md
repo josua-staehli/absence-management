@@ -28,7 +28,7 @@ dotnet run --project aspire/AbsenceManagement.AppHost   # runs everything, needs
 ```
 
 ```bash
-cd frontend && pnpm check   # typecheck + oxlint + boundaries + formatting check
+cd frontend && pnpm check   # typecheck + oxlint (including boundaries) + formatting check
 ```
 
 ## Backend rules
@@ -72,10 +72,11 @@ dotnet ef migrations add <Migration> --project src/Contexts/<Name>/<Name>.Infras
 - Package-based Nx workspace: there is no `project.json`, tags and targets live under
   the `nx` key of each `package.json`.
 - An import needs a declared dependency. A project may only import what its own `package.json`
-  lists as `workspace:*`, and only what the `scope:`/`type:` tags allow (`pnpm boundaries`).
+  lists as `workspace:*`, and only what the `scope:`/`type:` tags allow (`pnpm lint`).
 - `packages/shared/api-client/src/generated/` is generated. Never edit it, run `dotnet build`
   then `pnpm gen:api`. It is checked in.
-- oxlint and oxfmt, not ESLint and Prettier. ESLint exists for the one boundary rule only.
+- oxlint and oxfmt, not ESLint and Prettier. Nx's boundary rule runs through the experimental
+  `@nx/oxlint` bridge.
 - No hardcoded user-facing text. Keys live in `packages/shared/i18n`, `en.ts` is the reference
   language and the default, `de.ts` is closed with `satisfies typeof en`.
 - Pages belong in `feature`, requests in `data-access`, common presentational components in
