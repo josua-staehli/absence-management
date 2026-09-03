@@ -1,5 +1,8 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Nx 23.2 exposes its project-graph-aware boundary rule to Oxlint through this experimental
+  // bridge. Oxlint's JavaScript plugin API is not covered by its semantic-versioning policy.
+  "jsPlugins": ["@nx/oxlint/boundaries-plugin"],
   // Setting `plugins` replaces the default set, so the defaults are repeated here. `vitest` is
   // not among them: its rules are about test files and would otherwise fire on production code.
   "plugins": ["eslint", "typescript", "unicorn", "oxc", "react", "jsx-a11y", "import", "promise"],
@@ -18,6 +21,46 @@
   },
   "env": { "browser": true, "es2022": true },
   "rules": {
+    /*
+     * The frontend counterpart of the backend's project references. Both tag axes apply to every
+     * import: `scope:*` identifies a feature area and `type:*` identifies an architectural layer.
+     */
+    "@nx/enforce-module-boundaries": [
+      "error",
+      {
+        // Every library is source based and bundled by an application, so it has no build target.
+        "enforceBuildableLibDependency": false,
+        // Both applications share the workspace-root Vite setup by relative path.
+        "allow": ["^.*/vite\\.shared\\.mjs$"],
+        "depConstraints": [
+          {
+            "sourceTag": "scope:app",
+            "onlyDependOnLibsWithTags": ["scope:absences", "scope:employees", "scope:shared"]
+          },
+          {
+            "sourceTag": "scope:absences",
+            "onlyDependOnLibsWithTags": ["scope:absences", "scope:employees", "scope:shared"]
+          },
+          {
+            "sourceTag": "scope:employees",
+            "onlyDependOnLibsWithTags": ["scope:employees", "scope:shared"]
+          },
+          { "sourceTag": "scope:shared", "onlyDependOnLibsWithTags": ["scope:shared"] },
+          {
+            "sourceTag": "type:app",
+            "onlyDependOnLibsWithTags": ["type:feature", "type:ui", "type:util"]
+          },
+          {
+            "sourceTag": "type:feature",
+            "onlyDependOnLibsWithTags": ["type:data-access", "type:ui", "type:util"]
+          },
+          { "sourceTag": "type:data-access", "onlyDependOnLibsWithTags": ["type:util"] },
+          { "sourceTag": "type:ui", "onlyDependOnLibsWithTags": ["type:util"] },
+          { "sourceTag": "type:util", "onlyDependOnLibsWithTags": ["type:util"] },
+          { "sourceTag": "type:e2e", "onlyDependOnLibsWithTags": ["type:util"] }
+        ]
+      }
+    ],
     // The frontend talks to the API through the generated client only.
     "no-restricted-globals": ["error", "fetch", "XMLHttpRequest"],
     "no-console": "error",

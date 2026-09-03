@@ -94,7 +94,7 @@ Run these commands from `frontend/`.
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm check` | Typecheck, lint, boundaries, and formatting check |
+| `pnpm check` | Typecheck, lint (including Nx boundaries), and formatting check |
 | `pnpm test` | Run Vitest tests |
 | `pnpm e2e` | Run Playwright tests |
 | `pnpm build` | Generate the API client and build both apps |

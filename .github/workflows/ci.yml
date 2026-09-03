@@ -64,7 +64,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # Type check, oxlint, the Nx boundary rule and the formatting check.
+      # Type check, oxlint (including the Nx boundary rule) and the formatting check.
       - run: pnpm check
 
       # Vitest runs once rather than watching, because GitHub Actions sets CI=true.

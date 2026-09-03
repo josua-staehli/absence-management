@@ -12,8 +12,8 @@ export default defineConfig({
   output: {
     path: './packages/shared/api-client/src/generated',
     // Everything here is bundled by Vite, so extensionless relative imports are the least
-    // surprising. The folder is excluded from oxlint, oxfmt and ESLint - it is regenerated,
-    // not maintained.
+    // surprising. The folder is excluded from oxlint and oxfmt - it is regenerated, not
+    // maintained.
     importFileExtension: '',
   },
   plugins: [

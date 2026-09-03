@@ -62,7 +62,8 @@ dotnet test
 cd frontend && pnpm test && pnpm check
 ```
 
-`pnpm check` runs type checking, oxlint, the architecture boundary check, and the formatting check.
+`pnpm check` runs type checking, oxlint (including Nx's architecture boundary rule), and the
+formatting check.
 
 ## Business rules
 
