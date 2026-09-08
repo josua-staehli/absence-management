@@ -64,6 +64,12 @@ pnpm check
 experimental `@nx/oxlint` bridge exposes the project-graph-aware boundary rule to oxlint, so no
 ESLint configuration or command is needed.
 
+`pnpm typecheck` runs the native compiler of TypeScript 7. TypeScript 7 dropped the programmatic
+compiler API, which `pnpm gen:api` and Storybook's prop tables still need, so TypeScript 6 is
+installed next to it: `tsc` is 7, `tsc6` is 6, and an `import` of `typescript` gets 6. Rider and
+WebStorm use their own TypeScript 7 service, set in `.idea/compiler.xml`. See
+[TypeScript 7](../docs/BOOTSTRAP.md#typescript-7) for why it is arranged that way.
+
 ## The API client
 
 `packages/shared/api-client/src/generated/` is generated from the OpenAPI document and checked in.

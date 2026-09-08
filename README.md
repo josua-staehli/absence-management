@@ -10,7 +10,7 @@ starts everything: database, API and both dev servers.
 | Part      | Stack                                                                    |
 | --------- | ------------------------------------------------------------------------ |
 | Backend   | .NET 10, ASP.NET Core Minimal APIs, EF Core, PostgreSQL                  |
-| Frontend  | React 19, Vite 8, Mantine, TanStack Query, TypeScript                    |
+| Frontend  | React 19, Vite 8, TypeScript 7, Mantine, TanStack Query                  |
 | Local run | .NET Aspire (PostgreSQL in a container, dashboard with logs and traces)  |
 
 ## Layout

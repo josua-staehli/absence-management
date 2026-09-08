@@ -77,6 +77,10 @@ dotnet ef migrations add <Migration> --project src/Contexts/<Name>/<Name>.Infras
   then `pnpm gen:api`. It is checked in.
 - oxlint and oxfmt, not ESLint and Prettier. Nx's boundary rule runs through the experimental
   `@nx/oxlint` bridge.
+- Two compilers, on purpose: `tsc` is TypeScript 7 and typechecks, `tsc6` is TypeScript 6 and is
+  what an `import` of `typescript` resolves to, because 7 no longer ships the compiler API. The
+  two `npm:` aliases in `package.json` are not a mistake — see
+  [docs/BOOTSTRAP.md](docs/BOOTSTRAP.md#typescript-7) before touching them.
 - No hardcoded user-facing text. Keys live in `packages/shared/i18n`, `en.ts` is the reference
   language and the default, `de.ts` is closed with `satisfies typeof en`.
 - Pages belong in `feature`, requests in `data-access`, common presentational components in

@@ -1795,7 +1795,7 @@ What the command writes:
 | `apps/web`                            | The application named by `--appName`: React 19, `vite.config.mts` with the Vitest block inside it  |
 | `apps/web-e2e`                        | Its Playwright project, with an `implicitDependencies` entry back to the application               |
 | `nx.json`                             | The plugins that infer the targets: `@nx/js/typescript`, `@nx/eslint`, `@nx/vite`, `@nx/vitest`, `@nx/playwright` |
-| `package.json`                        | Named `@frontend/source` — the npm scope is the name of the workspace folder. React 19, Vite 8, Vitest 4, TypeScript 6, Playwright and the generated ESLint setup |
+| `package.json`                        | Named `@frontend/source` — the npm scope is the name of the workspace folder. React 19, Vite 8, Vitest 4, TypeScript 6 (replaced, see [TypeScript 7](#typescript-7)), Playwright and the generated ESLint setup |
 | `pnpm-workspace.yaml`                 | The `packages:` glob `apps/*`, plus `autoInstallPeers` and `allowBuilds`                           |
 | `tsconfig.base.json`, `tsconfig.json` | The shared compiler options, and the solution-style project references with one entry per project  |
 | `vitest.config.ts`                    | Collects the per-project Vitest configurations into one run                                        |
@@ -1986,6 +1986,10 @@ Then a set of corrections to what the creation command and the generators wrote:
     formats with oxfmt. The ESLint extension is removed; Nx Console and the Playwright extension
     are kept as generated. The file is the only thing under `.vscode/` that is committed.
 
+15. **Move to TypeScript 7.** Nx 23 scaffolds TypeScript 6, the last release that still ships the
+    compiler API the JavaScript tooling around it is built on. TypeScript 7 is the native compiler
+    and does not, so the two are installed side by side — see [TypeScript 7](#typescript-7).
+
 The `nx-welcome.tsx` component and its import in `app.tsx` can be deleted from both applications,
 together with the `app.module.css` next to it; `styles.css` stays, it is where the global stylesheet
 import lands.
@@ -2132,7 +2136,9 @@ need happens once, in the `api-client` resource.
 
 `typecheck` passes `--args=--force` because it runs `tsc --build`. Without the flag, TypeScript's
 incremental state can report success right after `pnpm gen:api` rewrote the generated types
-underneath it — a false pass on exactly the check that matters most here.
+underneath it — a false pass on exactly the check that matters most here. The `tsc` behind it is
+the native compiler of TypeScript 7, which is why a full, unincremental check of all eleven
+projects is still a two-second affair; see [TypeScript 7](#typescript-7).
 
 `lint` also runs Nx's module-boundary rule through the bridge configured in `.oxlintrc.json`; see
 [The Oxc toolchain](#the-oxc-toolchain).
@@ -2277,6 +2283,72 @@ path, which is why `vite.shared.mjs` is in the `allow` list of the boundary rule
 entry per project, and `nx sync` keeps it and the per-project references in step with the package
 dependencies, which is the third of the three boundary checks below.
 
+### TypeScript 7
+
+TypeScript 7 is the compiler rewritten in Go: the same language, the same `tsconfig.json`, roughly
+ten times the speed. What it no longer ships is the programmatic API. In TypeScript 7 the
+`typescript` package exports exactly two things, `version` and `versionMajorMinor` — every
+`ts.factory`, `ts.createProgram` and `ts.EmitHint` is gone, moved behind `typescript/unstable/*`
+entry points that are not the old API and are not stable yet.
+
+Two dependencies of this workspace are built on that API. `@hey-api/openapi-ts` emits the generated
+client with `ts.factory`, so `pnpm gen:api` would stop working, and with it the CI step that checks
+the client against the OpenAPI document. `react-docgen-typescript` reads the props of a component
+for the Storybook controls. Replacing `typescript` with version 7 breaks both.
+
+So both compilers are installed, under names that do not collide, which is what
+[Nx recommends](https://nx.dev/docs/kb/typescript-7):
+
+```json
+"@typescript/native": "npm:typescript@~7.0.2",
+"typescript": "npm:@typescript/typescript6@~6.0.2"
+```
+
+Two npm aliases, and the direction is the surprising part. `@typescript/native` is a local name for
+the real `typescript` package at version 7 — nothing is published under it, it exists only to keep
+the name `typescript` free. That package brings the `tsc` binary. Under the name `typescript` sits
+`@typescript/typescript6` instead, Microsoft's continued release line of the old compiler; its
+package version is 6.0.2 and the compiler inside it is 6.0.3, the same one the creation command
+installed. Its binary is called `tsc6`, so it does not fight over `tsc`, and because it is installed
+_as_ `typescript`, everything that imports the compiler API finds it without knowing any of this.
+
+Both are on the path:
+
+```bash
+pnpm exec tsc --version
+```
+
+```bash
+pnpm exec tsc6 --version
+```
+
+The first reports 7.0.2, the second 6.0.3. From there the split runs through the toolchain by
+itself:
+
+| What                                           | Which compiler | Why                                             |
+| ---------------------------------------------- | -------------- | ----------------------------------------------- |
+| `pnpm typecheck`                               | 7, the binary  | `@nx/js/typescript` infers `tsc --build`        |
+| The Nx project graph, `@nx/js:typescript-sync` | 6, the API     | Nx parses the `tsconfig` files programmatically |
+| `pnpm gen:api`                                 | 6, the API     | `@hey-api/openapi-ts` emits with `ts.factory`   |
+| `pnpm storybook`                               | 6, the API     | `react-docgen-typescript` reads the prop types  |
+| `pnpm build`, `pnpm test`, `pnpm dev`          | neither        | Vite and Vitest strip the types with Oxc        |
+
+Nothing else had to change. `tsconfig.base.json` is already what TypeScript 7 wants, and the build
+mode behaves as before, project references, `--emitDeclarationOnly` and `--force` included.
+
+Rider and WebStorm are pointed at TypeScript 7 in `.idea/compiler.xml`, one for the solution and one
+for the frontend project:
+
+```xml
+<component name="TypeScriptCompiler">
+  <option name="versionType" value="TS_GO_PROXY_RECOMMENDED_VERSION" />
+</component>
+```
+
+The *recommended* version, not the one from `node_modules`, and that is deliberate: the folder
+`node_modules/typescript` holds the 6.0.3 API package, so pointing the IDE at the project would put
+the editor a major version behind `pnpm typecheck`. The IDE brings its own `tsgo` and runs that.
+
 ### The Oxc toolchain
 
 Oxc replaces the JavaScript-based tools with Rust ones. Nx 23.2 completes the move by exposing its
@@ -2390,8 +2462,10 @@ The `react` plugin covers `eslint-plugin-react`, `eslint-plugin-react-hooks` and
 the hook rules that the ESLint setup of a generated Nx workspace provides are still there.
 
 Type-aware rules (`oxlint --type-aware`, plus the `oxlint-tsgolint` package) are **not** enabled.
-They run on `tsgo` and need TypeScript 7, while Nx 23 scaffolds TypeScript 6. Turn them on when the
-workspace can move; `pnpm typecheck` covers the same ground in the meantime.
+They run on `tsgo`, which is no longer the obstacle it was — the workspace is on
+[TypeScript 7](#typescript-7) and `oxlint-tsgolint` is versioned to match it. What holds them back
+now is only that they are a separate decision from the compiler: they are a new class of lint
+findings across the whole workspace, and `pnpm typecheck` covers the type errors themselves.
 
 **`.oxfmtrc.json`**:
 
