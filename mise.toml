@@ -1,0 +1,27 @@
+# The tool versions of this repository. `mise install` sets up both stacks, `mise.lock` records
+# the versions that were resolved. See docs/COMMANDS.md for the setup per operating system.
+
+# The .NET plugin, the `dotnet` shortname and global.json discovery behave as documented from this
+# release on.
+min_version = '2026.7.0'
+
+[tools]
+# Only one tool is declared here. The other two are declared where their ecosystem already declares
+# them, so that no version exists in two files:
+#   - the .NET SDK in global.json, read through the [settings] entry below
+#   - pnpm in the `packageManager` field of frontend/package.json, activated by `corepack enable`
+#
+# Node has no such file to read: `engines.node` in frontend/package.json is a compatibility floor
+# for consumers, not the version the project is built with, so mise deliberately ignores it. Vite 8
+# needs at least 22.12 and the Oxc binaries ship for the same range; `22` resolves to the newest
+# 22.x.
+node = { version = '22', postinstall = 'corepack enable' }
+
+[settings]
+# Install the .NET SDK that global.json asks for. mise reads `sdk.version` from it verbatim and
+# leaves `rollForward` to .NET, so global.json names the exact SDK - see
+# docs/COMMANDS.md#update-net.
+idiomatic_version_file_enable_tools = ['dotnet']
+
+# Write mise.lock, so every machine and CI install the same resolved versions.
+lockfile = true

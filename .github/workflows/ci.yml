@@ -20,9 +20,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: actions/setup-dotnet@v5
-        with:
-          global-json-file: global.json
+      # The committed mise.lock makes mise-action install in locked mode.
+      - uses: jdx/mise-action@v4
 
       - run: dotnet restore
 
@@ -52,15 +51,19 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
-        with:
-          package_json_file: frontend/package.json
+      # Uses the same lockfile; Corepack selects pnpm from frontend/package.json below.
+      - uses: jdx/mise-action@v4
 
-      - uses: actions/setup-node@v5
+      # mise-action caches the tools, not the packages pnpm downloads.
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
         with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
 
       - run: pnpm install --frozen-lockfile
 

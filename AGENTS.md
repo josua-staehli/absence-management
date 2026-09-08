@@ -31,6 +31,27 @@ dotnet run --project aspire/AbsenceManagement.AppHost   # runs everything, needs
 cd frontend && pnpm check   # typecheck + oxlint (including boundaries) + formatting check
 ```
 
+## Tool versions
+
+mise installs the toolchains, but it is never a second place a version is written down. One tool,
+one file:
+
+| Tool     | Version lives in                           | mise gets it via                      |
+| -------- | ------------------------------------------ | ------------------------------------- |
+| .NET SDK | `global.json` → `sdk.version`              | `idiomatic_version_file_enable_tools` |
+| Node     | `mise.toml` → `node`                       | declared there                        |
+| pnpm     | `frontend/package.json` → `packageManager` | the `corepack enable` postinstall hook |
+
+- Never add `dotnet` or `pnpm` to `[tools]` in `mise.toml`. Both would be a duplicate that can
+  drift, and for pnpm it would also lose the argument: pnpm self-manages to `packageManager` and
+  would silently override the mise entry.
+- mise reads `sdk.version` verbatim and ignores `rollForward`, so `global.json` names a real,
+  complete SDK version. .NET's `latestPatch` selects the highest installed patch in that feature
+  band. See [docs/COMMANDS.md](docs/COMMANDS.md#update-net) for the update steps.
+- `engines.node` and `node` in `mise.toml` are not duplicates: `engines` is the range consumers may
+  run, `mise.toml` is the version the repository is built with. mise never reads `engines`.
+- `mise.lock` pins what the requests resolved to. It is committed and drives CI as well.
+
 ## Backend rules
 
 - Warnings fail the build (`TreatWarningsAsErrors` and `EnforceCodeStyleInBuild` in

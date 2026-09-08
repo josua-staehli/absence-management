@@ -12,6 +12,7 @@ starts everything: database, API and both dev servers.
 | Backend   | .NET 10, ASP.NET Core Minimal APIs, EF Core, PostgreSQL                  |
 | Frontend  | React 19, Vite 8, TypeScript 7, Mantine, TanStack Query                  |
 | Local run | .NET Aspire (PostgreSQL in a container, dashboard with logs and traces)  |
+| Toolchain | mise (installs the SDK, Node and pnpm from the versions the repo pins)   |
 
 ## Layout
 
@@ -29,9 +30,49 @@ frontend/           the frontend built as Nx workspace, apps and packages
 
 ## Getting started
 
-Prerequisites: the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0), a container
-runtime (Docker Desktop or Podman), and Node 22.12 or newer with pnpm enabled via
-`corepack enable`.
+Two prerequisites: [mise](https://mise.jdx.dev) and a container runtime (Docker Desktop or Podman).
+mise reads the versions this repository already pins (see [Tool versions](#tool-versions)), installs
+them, and puts them on the `PATH` of this directory. So the SDK does not have to be installed by
+hand and no other project's toolchain is disturbed.
+
+**1. Install mise** — one command per operating system:
+
+```bash
+# Windows (Scoop, see docs/COMMANDS.md if Scoop is not installed yet)
+scoop install mise
+
+# macOS
+brew install mise
+
+# Linux
+curl -fsSL https://mise.run | sh
+```
+
+**2. Activate it in the shell**, so entering the repository switches the versions. Add the line to
+the shell profile and open a new shell:
+
+```bash
+# PowerShell, in $PROFILE
+(&mise activate pwsh) | Out-String | Invoke-Expression
+
+# zsh, in ~/.zshrc
+eval "$(mise activate zsh)"
+
+# bash, in ~/.bashrc
+eval "$(mise activate bash)"
+```
+
+**3. Install the tools**, from the repository root:
+
+```bash
+mise trust && mise install
+```
+
+`mise trust` confirms this repository's `mise.toml` once, `mise install` downloads the .NET SDK,
+Node and pnpm. `dotnet --version`, `node --version` and `pnpm --version` then report the pinned
+versions.
+
+**4. Run the application:**
 
 ```bash
 dotnet run --project aspire/AbsenceManagement.AppHost
@@ -51,6 +92,32 @@ anywhere in the repository:
 ```bash
 aspire run
 ```
+
+## Tool versions
+
+mise installs all three toolchains, but it does not become a second place to write a version down.
+Each version stays in the file its own ecosystem already reads, and mise reads that file:
+
+| Tool     | Declared in                                   | How mise gets it                    |
+| -------- | --------------------------------------------- | ----------------------------------- |
+| .NET SDK | `global.json` — `sdk.version`                 | Reads it (`idiomatic_version_file`) |
+| Node     | [mise.toml](mise.toml) — `node`               | Declared there directly             |
+| pnpm     | `frontend/package.json` — `packageManager`    | `corepack enable` activates it      |
+
+So there is exactly one place per tool. `global.json` is what the `dotnet` CLI, Rider and MSBuild
+already read, and `packageManager` is what Corepack and pnpm itself read. Adding either version
+to `mise.toml` as well would create a pair that can drift.
+
+Node is the exception, and deliberately: `engines.node` in `frontend/package.json` states the range
+consumers need, not the version this repository is built with, so mise ignores it and `mise.toml`
+names the real one.
+
+`mise.lock` records the exact versions those requests resolved to. It and `mise.toml` drive local
+machines and [CI](.github/workflows/ci.yml) alike, so a version can only be raised in one place.
+
+JetBrains IDEs pick the versions up through the
+[Mise plugin](https://plugins.jetbrains.com/plugin/24904-mise), see
+[docs/COMMANDS.md](docs/COMMANDS.md#jetbrains-ides).
 
 ## Tests and checks
 
