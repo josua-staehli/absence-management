@@ -1,9 +1,11 @@
+using Common.Infrastructure.Database;
 using Employees.Infrastructure;
 using Employees.Infrastructure.Persistence;
 using Employees.Infrastructure.Persistence.Queries;
 using Employees.Infrastructure.Persistence.Repositories;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Employees.UnitTests.UseCases;
 
@@ -14,6 +16,9 @@ namespace Employees.UnitTests.UseCases;
 /// </summary>
 internal sealed class EmployeesFixture : IAsyncDisposable
 {
+    private static readonly ServiceProvider NoHandlers = new ServiceCollection()
+        .BuildServiceProvider();
+
     private readonly SqliteConnection _connection;
 
     private EmployeesFixture(SqliteConnection connection, EmployeesDbContext dbContext)
@@ -50,8 +55,11 @@ internal sealed class EmployeesFixture : IAsyncDisposable
         var connection = new SqliteConnection("Filename=:memory:");
         await connection.OpenAsync();
 
+        // Saving dispatches the domain events before the commit, as it does in production. The
+        // bounded context has no handlers yet, so an empty container is all there is to ask.
         var options = new DbContextOptionsBuilder<EmployeesDbContext>()
             .UseSqlite(connection)
+            .AddInterceptors(new DispatchDomainEventsInterceptor(NoHandlers))
             .Options;
 
         var dbContext = new EmployeesDbContext(options);

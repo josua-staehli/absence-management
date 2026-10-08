@@ -45,7 +45,13 @@ public sealed class Employee : AggregateRoot<Guid>
         var trimmedEmail = email.Trim();
         if (!IsEmailAddress(trimmedEmail)) return EmployeeErrors.EmailInvalid;
 
-        return new Employee(Guid.CreateVersion7(), firstName.Trim(), lastName.Trim(), trimmedEmail);
+        var employee = new Employee(Guid.CreateVersion7(), firstName.Trim(), lastName.Trim(),
+            trimmedEmail);
+
+        employee.Raise(new EmployeeCreated(employee.Id, employee.FirstName, employee.LastName,
+            employee.Email));
+
+        return employee;
     }
 
     /// <summary>

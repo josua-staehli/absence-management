@@ -2,8 +2,12 @@ using Absences.Application;
 using Absences.Infrastructure.Persistence;
 using Absences.Infrastructure.Persistence.Queries;
 using Absences.Infrastructure.Persistence.Repositories;
+using Common.Application.Handlers;
+using Common.Domain.Primitives;
+using Common.Infrastructure.Database;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Absences.UnitTests.UseCases;
 
@@ -16,14 +20,26 @@ namespace Absences.UnitTests.UseCases;
 ///         <see cref="FakeEmployeeDirectory" />, so the only thing these tests share with it is the
 ///         contract.
 ///     </para>
+///     <para>
+///         Saving dispatches the domain events before the commit, as it does in production. The
+///         bounded context has no handlers of its own yet, so a <see cref="RecordingHandler{T}" />
+///         hears them instead and keeps them in <see cref="DispatchedEvents" />.
+///     </para>
 /// </summary>
 internal sealed class AbsencesFixture : IAsyncDisposable
 {
     private readonly SqliteConnection _connection;
+    private readonly ServiceProvider _handlers;
 
-    private AbsencesFixture(SqliteConnection connection, AbsencesDbContext dbContext)
+    private AbsencesFixture(
+        SqliteConnection connection,
+        ServiceProvider handlers,
+        List<IDomainEvent> dispatchedEvents,
+        AbsencesDbContext dbContext)
     {
         _connection = connection;
+        _handlers = handlers;
+        DispatchedEvents = dispatchedEvents;
         DbContext = dbContext;
         AbsenceRequests = new AbsenceRequestRepository(dbContext);
         Queries = new AbsenceRequestQueries(dbContext);
@@ -44,9 +60,13 @@ internal sealed class AbsencesFixture : IAsyncDisposable
 
     public Guid OtherEmployeeId { get; } = new("22222222-2222-2222-2222-222222222222");
 
+    /// <summary>Every domain event the use cases dispatched by saving, in order.</summary>
+    public List<IDomainEvent> DispatchedEvents { get; }
+
     public async ValueTask DisposeAsync()
     {
         await DbContext.DisposeAsync();
+        await _handlers.DisposeAsync();
         await _connection.DisposeAsync();
     }
 
@@ -56,14 +76,21 @@ internal sealed class AbsencesFixture : IAsyncDisposable
         var connection = new SqliteConnection("Filename=:memory:");
         await connection.OpenAsync();
 
+        var dispatchedEvents = new List<IDomainEvent>();
+        var handlers = new ServiceCollection()
+            .AddSingleton(dispatchedEvents)
+            .AddSingleton(typeof(IDomainEventHandler<>), typeof(RecordingHandler<>))
+            .BuildServiceProvider();
+
         var options = new DbContextOptionsBuilder<AbsencesDbContext>()
             .UseSqlite(connection)
+            .AddInterceptors(new DispatchDomainEventsInterceptor(handlers))
             .Options;
 
         var dbContext = new AbsencesDbContext(options);
         await dbContext.Database.EnsureCreatedAsync();
 
-        var fixture = new AbsencesFixture(connection, dbContext);
+        var fixture = new AbsencesFixture(connection, handlers, dispatchedEvents, dbContext);
 
         fixture.Employees
             .With(fixture.EmployeeId, "Anna Meier")

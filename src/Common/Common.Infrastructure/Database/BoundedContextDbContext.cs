@@ -10,6 +10,11 @@ namespace Common.Infrastructure.Database;
 ///         Entity configurations are picked up from the bounded context's own assembly, so adding
 ///         a mapping never requires touching a central registration.
 ///     </para>
+///     <para>
+///         Saving dispatches the domain events of the tracked aggregates first, inside the same
+///         transaction, see <see cref="DispatchDomainEventsInterceptor" />. The events themselves
+///         are not stored, the aggregates' <c>DomainEvents</c> are not part of the model.
+///     </para>
 /// </summary>
 public abstract class BoundedContextDbContext<TContext>(DbContextOptions<TContext> options)
     : DbContext(options), IUnitOfWork

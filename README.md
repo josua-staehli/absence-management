@@ -21,6 +21,7 @@ src/Common/         building blocks every bounded context reuses
 src/Contexts/       one folder per bounded context, four projects each
 src/Hosts/          the web host that mounts the bounded contexts
 tests/              tests for the backend
+tests/Common/       tests for the building blocks, e.g. the dispatch of domain events
 tests/Contexts/     one test project per bounded context
 tests/Architecture/ rules that hold across all contexts, checked with ArchUnitNET
 aspire/             the AppHost: which resources run and how they depend on each other
@@ -76,6 +77,9 @@ formatting check.
 - There is no authentication or authorization. The employee and admin apps represent the two roles.
 - Public holidays, partial days, notifications and multi-stage approvals are not supported.
 - Concurrent updates are not protected by optimistic concurrency control.
+- Domain events are handled inside the transaction of the change that raised them. A reaction in
+  another bounded context or outside the database, such as an e-mail, would need an outbox, which
+  does not exist yet.
 
 ## Documentation
 
@@ -93,5 +97,7 @@ domain boundary, and the React applications talk to the API over HTTP. Inside a 
 dependencies point inwards, from `Api` over `Infrastructure` and `Application` to `Domain`, and
 every one of them owns its database. They never reference each other directly: `Absences` depends
 on the `Contracts` project of `Employees`. `Common` holds the building blocks all of them reuse.
+Every change of an aggregate raises a domain event, and handlers in the same bounded context react
+to it before the change is committed, in the same transaction.
 
 ![Architectural overview](docs/architectural_overview.png)

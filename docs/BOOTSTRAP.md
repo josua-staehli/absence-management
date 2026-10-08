@@ -826,31 +826,34 @@ stay for what really is exceptional.
 
 #### Common.Domain
 
-| File                        | Purpose                                                                        |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| `Primitives/Entity.cs`      | Base class for objects with an id. Equality by type and `Id`             |
-| `Primitives/AggregateRoot.cs` | Marks the entry point of an aggregate. The only entity a repository loads    |
-| `Results/Error.cs`          | A business error as a value (`Code`, `Message`, `Type`) instead of an exception |
-| `Results/Result.cs`         | The outcome of an operation that can fail, with and without a return value      |
+| File                          | Purpose                                                                                |
+| ----------------------------- | -------------------------------------------------------------------------------------- |
+| `Primitives/Entity.cs`        | Base class for objects with an id. Equality by type and `Id`                           |
+| `Primitives/AggregateRoot.cs` | The entry point of an aggregate: what a repository loads, and what raises domain events |
+| `Primitives/IDomainEvent.cs`  | Marks a domain event: something that happened to an aggregate, as an immutable record  |
+| `Results/Error.cs`            | A business error as a value (`Code`, `Message`, `Type`) instead of an exception        |
+| `Results/Result.cs`           | The outcome of an operation that can fail, with and without a return value             |
 
 #### Common.Application
 
-| File                          | Purpose                                                                              |
-| ----------------------------- | ------------------------------------------------------------------------------------ |
-| `Handlers/ICommandHandler.cs` | Interfaces for a use case that changes state, with and without a return value        |
-| `Handlers/IQueryHandler.cs`   | Interface for a use case that only reads data                                        |
-| `IUnitOfWork.cs`              | Transaction boundary of a use case, implemented by the bounded context's `DbContext` |
-| `ApplicationRegistration.cs`  | Registers every handler of an assembly and the `TimeProvider` in the DI container    |
+| File                              | Purpose                                                                              |
+| --------------------------------- | ------------------------------------------------------------------------------------ |
+| `Handlers/ICommandHandler.cs`     | Interfaces for a use case that changes state, with and without a return value        |
+| `Handlers/IQueryHandler.cs`       | Interface for a use case that only reads data                                        |
+| `Handlers/IDomainEventHandler.cs` | Interface for a reaction to a domain event, run while the unit of work saves         |
+| `IUnitOfWork.cs`                  | Transaction boundary of a use case, implemented by the bounded context's `DbContext` |
+| `ApplicationRegistration.cs`      | Registers every handler of an assembly and the `TimeProvider` in the DI container    |
 
 #### Common.Infrastructure
 
-| File                                     | Purpose                                                                                    |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `Database/BoundedContextDbContext.cs`    | Base `DbContext` of a bounded context, at the same time its `IUnitOfWork`                  |
-| `Database/IDbInitializer.cs`             | Migrates and seeds the tables of one bounded context. Every one brings its own             |
-| `Database/DatabaseInitialization.cs`     | Registers a bounded context's initializer and runs all of them on startup                  |
-| `Database/DesignTimeDbContextFactory.cs` | Base for a bounded context's `dotnet ef` factory, so adding a migration needs no database  |
-| `InfrastructureRegistration.cs`          | Registers a bounded context's `DbContext` with the shared connection and provider settings |
+| File                                          | Purpose                                                                                    |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `Database/BoundedContextDbContext.cs`         | Base `DbContext` of a bounded context, at the same time its `IUnitOfWork`                  |
+| `Database/DispatchDomainEventsInterceptor.cs` | Hands the events of the saved aggregates to their handlers, before the commit              |
+| `Database/IDbInitializer.cs`                  | Migrates and seeds the tables of one bounded context. Every one brings its own             |
+| `Database/DatabaseInitialization.cs`          | Registers a bounded context's initializer and runs all of them on startup                  |
+| `Database/DesignTimeDbContextFactory.cs`      | Base for a bounded context's `dotnet ef` factory, so adding a migration needs no database  |
+| `InfrastructureRegistration.cs`               | Registers a bounded context's `DbContext` with the shared settings and the event dispatch  |
 
 #### Common.Api
 
@@ -869,6 +872,7 @@ stay for what really is exceptional.
 | -------------------- | --------------------------------------------------------------------------- |
 | `Employee.cs`        | The employee aggregate root, created through a factory that validates it     |
 | `EmployeeErrors.cs`  | The business errors of the aggregate, with their stable codes                |
+| `EmployeeEvents.cs`  | The domain events of the aggregate, so far only `EmployeeCreated`            |
 
 #### Employees.Application
 
@@ -963,6 +967,7 @@ implemented here.
 | `DateRange.cs`             | Value object of an inclusive period, enforces that the start is not after the end |
 | `AbsenceRequest.cs`        | The aggregate root: creating it, editing it, approving and rejecting it     |
 | `AbsenceRequestErrors.cs`  | The business errors of the aggregate, with their stable codes               |
+| `AbsenceRequestEvents.cs`  | The domain events of the aggregate, one per change: created, updated, approved, rejected |
 
 Where a rule lives follows from what it needs to see:
 
@@ -1071,6 +1076,155 @@ the employees bounded context has to be registered as well is not visible here e
 one asks the container for `IEmployeeDirectory`, and the container has it because the employees
 bounded context registered it.
 
+### Domain events
+
+The two bounded contexts change state in five places: an employee is created, and an absence
+request is created, edited, approved or rejected. Each of these changes also raises a **domain
+event**, a record in the past tense that says what happened. Code can react to a change through it,
+without the use case that made the change knowing who reacts.
+
+| Piece                               | Project                 | Role                                                                    |
+| ----------------------------------- | ----------------------- | ----------------------------------------------------------------------- |
+| `IDomainEvent`                      | `Common.Domain`         | Marks an event: a sealed record with the values a reaction needs        |
+| `AggregateRoot<TId>.Raise()`        | `Common.Domain`         | Records an event on the aggregate, in the method that makes the change  |
+| `IDomainEventHandler<TDomainEvent>` | `Common.Application`    | A reaction, registered by the same assembly scan as every other handler |
+| `DispatchDomainEventsInterceptor`   | `Common.Infrastructure` | Hands the events to their handlers when the unit of work saves          |
+
+The aggregate raises an event in the method that makes the change, so the two cannot drift apart,
+and only once every rule has passed, so a refused change reports nothing:
+
+```csharp
+private Result Decide(AbsenceStatus decision, DateTimeOffset now)
+{
+    if (!IsOpen) return AbsenceRequestErrors.NotOpen;
+
+    Status = decision;
+    UpdatedAt = now;
+
+    Raise(decision == AbsenceStatus.Approved
+        ? new AbsenceRequestApproved(Id, EmployeeId, Type, Period)
+        : new AbsenceRequestRejected(Id, EmployeeId, Type, Period));
+
+    return Result.Success();
+}
+```
+
+An event carries what a reaction needs, so no handler has to load the aggregate again - for an
+absence that is whose it is, what kind and which days. It matters most for `AbsenceRequestCreated`:
+when that one is dispatched, the request is not in the database yet, and a query would not find it.
+
+#### When the events are dispatched
+
+That is the one decision that matters, and there are three moments to choose from:
+
+| Moment                                     | What goes wrong                                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| As soon as the aggregate raises it         | The use case may still refuse or fail, and the reaction happened for a change that never did |
+| After the commit                           | A failing handler cannot undo the committed change, and a crash in between loses the reaction |
+| Before the commit, in the same transaction | Nothing, as long as the handler changes nothing outside that transaction                      |
+
+The interceptor takes the third. A use case calls `SaveChangesAsync` as before, and before EF Core
+writes anything, the interceptor
+
+1. takes the events out of every tracked aggregate,
+2. hands each one to the handlers of its type, resolved from the scope the `DbContext` belongs to -
+   so a handler gets the very same `DbContext`, and what it changes is tracked there,
+3. and repeats that for the events the handlers' changes raised, until none are left.
+
+Only then does EF Core write: the change of the use case and the changes of every handler, in one
+transaction. If a handler throws, the save throws and nothing is written, and the use case fails
+with the handler's exception, which the API answers with `500`. Because the events are taken out of
+the aggregates, a second save does not dispatch them again.
+
+All of this rests on one property: a handler reads with LINQ and changes **tracked entities
+only**, which wait in the change tracker until EF Core writes them. SQL of its own would not wait.
+`ExecuteUpdate`, `ExecuteDelete` and `ExecuteSql` are committed by themselves, before the save and
+whatever its outcome, and even a query written in SQL can write: `DELETE ... RETURNING` returns
+rows just like a `SELECT`. So while the handlers run, the interceptor lets EF Core execute LINQ
+queries and nothing else - a handler reads through the repositories, as a use case does. Raw SQL
+composed with LINQ counts as LINQ, which is safe, because EF Core composes only over SQL that
+starts with `SELECT`. The check is made on every command, so a query compiled earlier cannot slip
+past it, and outside the dispatch nothing is restricted.
+
+The same property keeps the retries of `EnableRetryOnFailure` working: when a write fails for a
+moment, EF Core repeats it, and since every reaction is still tracked, the repeated write contains
+all of them without dispatching anything again.
+
+A handler can still run without its changes being stored - when a handler after it fails, or the
+database refuses the write. Its database changes are not written then, anything else it did stays
+done, which is what the second rule below is about. And after a handler failed, the context refuses
+to save again: the events are gone and only some handlers reacted, so the use case is retried in a
+fresh scope instead.
+
+`AddBoundedContextDbContext` adds the interceptor to the `DbContext` of every bounded context, so a
+new one gets all of this without a line of its own. Nothing is stored: the events are not part of
+the EF Core model, and there is no migration.
+
+#### Writing a handler
+
+A handler is a class in the application layer, `internal` and `sealed` like every other handler,
+and the assembly scan registers it. No use case changes for it. A sketch, for a vacation balance
+that an approval reduces - which does not exist yet:
+
+```csharp
+internal sealed class ReduceVacationBalanceHandler(IVacationBalanceRepository balances)
+    : IDomainEventHandler<AbsenceRequestApproved>
+{
+    public async Task HandleAsync(
+        AbsenceRequestApproved approved,
+        CancellationToken cancellationToken = default)
+    {
+        var balance = await balances.GetAsync(approved.EmployeeId, cancellationToken);
+
+        // Tracked by the same DbContext, so the save this handler runs in writes it.
+        balance.Deduct(approved.Period);
+    }
+}
+```
+
+The timing sets three rules:
+
+- **A handler does not save, and runs no SQL of its own.** It reads with LINQ and changes tracked
+  entities, and the save it runs in writes them, together with the change that raised the event.
+- **A handler stays inside the transaction.** Only the database of its own bounded context rolls
+  back with it. The other bounded context has a database of its own, and an e-mail cannot be
+  unsent.
+- **A handler holds no business rule.** The event has already happened. A broken rule is an `Error`
+  returned by the aggregate or the use case, while a handler that throws is a `500`.
+
+Six guards turn the mistakes that would otherwise go unnoticed into exceptions:
+
+| Mistake                                       | Why it is refused                                                            |
+| --------------------------------------------- | ---------------------------------------------------------------------------- |
+| A handler saves, synchronously or not         | It would commit the change before the other handlers had their turn          |
+| A handler runs SQL of its own                 | It could write, and that would be committed whatever happens to the save     |
+| Handlers keep raising each other's events     | After ten rounds it is a cycle, and the request would never finish           |
+| `SaveChanges()` with events left to dispatch  | The handlers are asynchronous, a synchronous save would commit without them  |
+| Saving again after a handler failed           | The events are gone and only some handlers reacted, which cannot be replayed |
+| A handler for `IDomainEvent` or a base class  | Events reach the handlers of their exact type, it would never be called      |
+
+The last one is checked when the handlers are registered, so the host does not start - and even
+`dotnet build` fails, because it starts the host to write the OpenAPI document. The others are
+checked by the interceptor, while it saves.
+
+#### What is deliberately not there
+
+Reactions that leave the transaction cannot be made safe this way: telling the other bounded
+context, which owns another database, or notifying somebody. Dispatched before the commit, they
+would happen even when the commit fails. Their tool is a **transactional outbox**: the events are
+written into a table of the same database as part of the commit, and a background worker hands them
+on afterwards, retrying until it succeeds. That takes a table and a migration per bounded context, a
+worker, a serialization format and handlers that cope with running twice - and nothing in the
+application needs it yet. When something does, the events are already there, and the outbox
+becomes a second consumer of the same `DomainEvents`.
+
+No library is used. A mediator library such as MediatR would make every event implement its
+notification interface, a package reference in the domain projects, which is exactly what
+`LayerTests` refuses. Keeping the domain free of it would cost more than what the library replaces
+here: one interceptor and a single reflection call. The messaging frameworks that bring an outbox
+along solve the part that is deliberately left out, and they decide how handlers are written and
+run.
+
 ### Tests
 
 The test projects were created further above, this is what went into them. The tests come in two
@@ -1081,8 +1235,9 @@ The aggregate has no dependencies, so there is nothing to substitute.
 
 Use case tests run the real handlers against the real repository, the real queries and the real EF
 Core mapping, on an in-memory SQLite database. They cover what a domain test cannot reach: the
-rules that span more than one aggregate, and whether the values survive the trip through the
-database. Nothing is mocked, so a broken mapping fails a test instead of passing it.
+rules that span more than one aggregate, whether the values survive the trip through the database,
+and which domain events a save dispatches. Nothing is mocked, so a broken mapping fails a test
+instead of passing it.
 
 #### Reaching the internals
 
@@ -1101,12 +1256,45 @@ line with `Absences.UnitTests` into the two projects of the absences bounded con
 alternative, making the types public just so a test can reach them, would widen that surface for no
 other reason.
 
+#### Common building blocks
+
+| File                                         | Purpose                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------ |
+| `Api/ResultExtensionsTests.cs`               | The one translation from a business `Error` to an HTTP response          |
+| `Application/ApplicationRegistrationTests.cs` | The handler scan finds event handlers, and refuses one that would never be called |
+| `Infrastructure/ShopFixture.cs`              | A bounded context in miniature, wired like a real one, on in-memory SQLite |
+| `Infrastructure/DomainEventDispatchTests.cs` | The guarantees of the domain event dispatch                              |
+
+The dispatch is tested once, here, because every bounded context inherits it rather than implementing
+it. A real bounded context would do, but none has a handler yet, and a test handler that writes
+absence requests would read strangely. So a shop stands in: when an order is placed, a handler writes
+an invoice. That is just big enough for a handler that changes something, whose change raises an
+event of its own.
+
+The tests pin down that what the handlers change is stored together with the change that raised
+the event, or not at all, and that no event is dispatched twice: nothing reacts before the save, the
+invoice is stored together with the order, a failing or cancelled handler stores neither, and
+neither does a database that refuses the write. The invoice's event is dispatched by the same save,
+a second save dispatches nothing, and each of the interceptor's guards refuses what it should -
+SQL of a handler's own also when it hides in a query, as a `DELETE ... RETURNING` read through
+`FromSql` or `SqlQuery`. The opposite is tested as well: a handler that reads with LINQ and adds to
+what it read still works. One more test checks that `AddBoundedContextDbContext` adds the
+interceptor, because the fixture adds it by hand and would not notice if it went missing. With the
+dispatch moved behind the commit, most of these tests fail.
+
+The retry test hands the fixture a different execution strategy: one that treats a dropped
+connection, simulated on the first `INSERT`, as transient - what `EnableRetryOnFailure` does for
+PostgreSQL. The write is repeated, and the handlers have still run exactly once.
+
+For this, the project references `Common.Infrastructure` and `Microsoft.EntityFrameworkCore.Sqlite`
+next to `Common.Api`, and suppresses `xUnit1051` like the other test projects.
+
 #### Bounded context: Employees
 
 | File                              | Purpose                                                                        |
 | --------------------------------- | ------------------------------------------------------------------------------ |
-| `Domain/EmployeeTests.cs`         | The rules of the aggregate: required values, the shape of the address, trimming |
-| `UseCases/EmployeesFixture.cs`    | Builds the in-memory database with the real mapping, repository and queries     |
+| `Domain/EmployeeTests.cs`         | The rules of the aggregate: required values, the shape of the address, trimming, and the event it raises |
+| `UseCases/EmployeesFixture.cs`    | Builds the in-memory database with the real mapping, repository and queries, and the event dispatch |
 | `UseCases/CreateEmployeeTests.cs` | The creation use case, above all the uniqueness of the email address            |
 | `UseCases/EmployeeQueryTests.cs`  | The read side: the list, its order, and the lookup by id                        |
 
@@ -1126,11 +1314,19 @@ normalization later has to be a deliberate change.
 | File                                     | Purpose                                                                     |
 | ---------------------------------------- | --------------------------------------------------------------------------- |
 | `Domain/AbsenceRequestTests.cs`          | The rules of the aggregate, without a database                              |
+| `Domain/AbsenceRequestEventTests.cs`     | The events of the aggregate: one per change, none for a refused one         |
 | `UseCases/FakeEmployeeDirectory.cs`      | Stands in for the whole employees bounded context                           |
+| `UseCases/RecordingHandler.cs`           | Hears every domain event a save dispatches, and keeps it for the assertions |
 | `UseCases/AbsencesFixture.cs`            | Builds the in-memory database with the real mapping, repository and queries |
-| `UseCases/AbsenceRequestUseCaseTests.cs` | Editing, deciding, and the read models                                      |
+| `UseCases/AbsenceRequestUseCaseTests.cs` | Editing, deciding, the read models, and the events the saves dispatch       |
 
 The domain tests name the rule they cover in a comment.
+
+Both fixtures add the `DispatchDomainEventsInterceptor` to their `DbContext`, so a save in a test
+dispatches the domain events the way it does in production. The absences fixture registers a
+`RecordingHandler` for every event type - once, as an open generic - and two use case tests read
+from it: each use case dispatches the event of its change, with the values after it, and a refused
+use case dispatches nothing.
 
 The use case tests are where the boundary pays off. The absences bounded context is exercised with
 the real EF Core mapping and the real SQL, but the employees one is replaced by
@@ -1149,7 +1345,7 @@ Two of the tests are about the boundary rather than a business rule:
 
 #### Architecture tests
 
-The two projects above test what the code does. This one tests how it is arranged, with
+The projects above test what the code does. This one tests how it is arranged, with
 [ArchUnitNET](https://github.com/TNG/ArchUnitNET).
 
 | File                             | Purpose                                                                                               |
@@ -1157,7 +1353,7 @@ The two projects above test what the code does. This one tests how it is arrange
 | `SolutionArchitecture.cs`        | Finds the assemblies and the bounded contexts, and holds the naming convention as regular expressions |
 | `LayerTests.cs`                  | The layering inside a bounded context, and that the domain stays free of frameworks                   |
 | `BoundedContextBoundaryTests.cs` | That a bounded context reaches another one only through its contracts                                 |
-| `ConventionTests.cs`             | Where handlers, repositories, queries and endpoints live, and who may see them                        |
+| `ConventionTests.cs`             | Where handlers, repositories, queries, endpoints and domain events live, and who may see them         |
 
 Most of the layering is already true without a test: the layers are separate projects, and the
 compiler refuses a reference that would break them. What the tests add is the step before that.
