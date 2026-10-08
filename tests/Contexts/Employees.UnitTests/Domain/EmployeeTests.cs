@@ -91,6 +91,18 @@ public class EmployeeTests
         Assert.Equal("anna.meier@example.com", employee.Value.Email);
     }
 
+    /// <summary>The event reports the values the aggregate holds, not the raw input.</summary>
+    [Fact]
+    public void Creating_an_employee_raises_created_with_the_trimmed_values()
+    {
+        var employee = Create("  Anna ", " Meier  ", "  anna.meier@example.com  ").Value;
+
+        var created = Assert.Single(employee.DomainEvents);
+        Assert.Equal(
+            new EmployeeCreated(employee.Id, "Anna", "Meier", "anna.meier@example.com"),
+            created);
+    }
+
     private static Result<Employee> Create(
         string? firstName = "Anna",
         string? lastName = "Meier",

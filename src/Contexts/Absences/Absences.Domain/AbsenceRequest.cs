@@ -6,7 +6,8 @@ namespace Absences.Domain;
 /// <summary>
 ///     Aggregate root of an absence request. Every state change goes through a method on this
 ///     class, so the business rules cannot be bypassed by the API, the application layer or
-///     EF Core.
+///     EF Core. Every successful one raises a domain event that reports it, see
+///     <see cref="AbsenceRequestCreated" /> and the events next to it.
 ///     <para>
 ///         The employee appears as a plain id: employees are a bounded context of their own, so
 ///         this aggregate can only carry the reference, never the employee itself. Whether that id
@@ -77,8 +78,13 @@ public sealed class AbsenceRequest : AggregateRoot<Guid>
         var normalizedComment = NormalizeComment(comment);
         if (normalizedComment.IsFailure) return normalizedComment.Error;
 
-        return new AbsenceRequest(Guid.CreateVersion7(), employeeId, type, period,
+        var absenceRequest = new AbsenceRequest(Guid.CreateVersion7(), employeeId, type, period,
             normalizedComment.Value, now);
+
+        absenceRequest.Raise(
+            new AbsenceRequestCreated(absenceRequest.Id, employeeId, type, period));
+
+        return absenceRequest;
     }
 
     /// <summary>
@@ -99,6 +105,8 @@ public sealed class AbsenceRequest : AggregateRoot<Guid>
         Comment = normalizedComment.Value;
         UpdatedAt = now;
 
+        Raise(new AbsenceRequestUpdated(Id, EmployeeId, Type, Period));
+
         return Result.Success();
     }
 
@@ -118,7 +126,8 @@ public sealed class AbsenceRequest : AggregateRoot<Guid>
     }
 
     /// <summary>
-    ///     What both decisions have in common: either can be made only while the request is open.
+    ///     What both decisions have in common: either can be made only while the request is open,
+    ///     and each is reported as the event of its own name.
     /// </summary>
     private Result Decide(AbsenceStatus decision, DateTimeOffset now)
     {
@@ -126,6 +135,10 @@ public sealed class AbsenceRequest : AggregateRoot<Guid>
 
         Status = decision;
         UpdatedAt = now;
+
+        Raise(decision == AbsenceStatus.Approved
+            ? new AbsenceRequestApproved(Id, EmployeeId, Type, Period)
+            : new AbsenceRequestRejected(Id, EmployeeId, Type, Period));
 
         return Result.Success();
     }

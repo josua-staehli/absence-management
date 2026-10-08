@@ -11,6 +11,7 @@ src/Common/         building blocks every bounded context reuses
 src/Contexts/       one folder per bounded context, four projects each
 src/Hosts/          the web host that mounts the bounded contexts
 tests/              tests for the backend
+tests/Common/       tests for the building blocks, e.g. the dispatch of domain events
 tests/Contexts/     one test project per bounded context
 tests/Architecture/ rules that hold across all contexts, checked with ArchUnitNET
 aspire/             the AppHost: which resources run and how they depend on each other
@@ -50,6 +51,14 @@ cd frontend && pnpm check   # typecheck + oxlint (including boundaries) + format
   `Error`. `ToHttpResult()` maps `Validation` → 400, `NotFound` → 404, `Conflict` → 409.
 - Handlers, repositories and queries are `internal`. Tests reach them through
   `InternalsVisibleTo`. Do not widen a type to public just to test it.
+- Every state change of an aggregate raises a domain event in the same method, `Raise(...)` with a
+  sealed record named in the past tense, declared in `<Aggregate>Events.cs` of the domain project.
+  A reaction is an `IDomainEventHandler<T>` for one concrete event, in the application layer (one
+  for `IDomainEvent` would never be called and fails on startup). The unit of work runs it while
+  it saves, before the commit and inside its transaction, so a handler reads with LINQ and changes
+  tracked entities of its own bounded context only. Saving and SQL of its own (`ExecuteUpdate`,
+  `FromSql`, ...) are refused while handlers run. Anything outside that database - another bounded
+  context, an e-mail - needs an outbox, which does not exist yet.
 - Endpoints carry `.WithName()`, `.Produces<T>()` and `.ProducesProblems(...)`. They generate
   the OpenAPI document and therefore the TypeScript client. Return a declared response record, not
   an anonymous object.

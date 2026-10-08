@@ -1,4 +1,5 @@
 using ArchUnitNET.xUnitV3;
+using Common.Domain.Primitives;
 using static ArchUnitNET.Fluent.ArchRuleDefinition;
 using static AbsenceManagement.ArchitectureTests.SolutionArchitecture;
 
@@ -30,6 +31,17 @@ public sealed class ConventionTests
             .Should().BeInternal()
             .AndShould().ResideInNamespaceMatching(Namespaces.Infrastructure)
             .Because("how data is read and written is the bounded context's own business")
+            .Check(Instance);
+    }
+
+    [Fact]
+    public void Domain_events_are_sealed_records_in_the_domain_layer()
+    {
+        Classes().That().ImplementInterface(typeof(IDomainEvent))
+            .Should().BeRecord()
+            .AndShould().BeSealed()
+            .AndShould().ResideInNamespaceMatching(Namespaces.Domain)
+            .Because("an event is a fact an aggregate reports about itself, and a fact is final")
             .Check(Instance);
     }
 

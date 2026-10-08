@@ -5,8 +5,8 @@ namespace Absences.UnitTests.UseCases;
 
 /// <summary>
 ///     What a domain test cannot reach: the rules that span more than one request, the question
-///     asked across the bounded context boundary, and whether the values survive the trip through
-///     the database.
+///     asked across the bounded context boundary, whether the values survive the trip through the
+///     database, and which domain events the saves dispatch.
 /// </summary>
 public class AbsenceRequestUseCaseTests
 {
@@ -282,6 +282,64 @@ public class AbsenceRequestUseCaseTests
         Assert.Equal("Unknown employee", stored.EmployeeName);
     }
 
+    /// <summary>
+    ///     No use case dispatches an event itself. It saves, and the unit of work hands the events
+    ///     of the saved request to the handlers - one per change, with the values after it.
+    /// </summary>
+    [Fact]
+    public async Task Each_use_case_dispatches_the_event_of_its_change_when_it_saves()
+    {
+        await using var fixture = await AbsencesFixture.CreateAsync();
+
+        var created = await CreateHandler(fixture)
+            .HandleAsync(Command(fixture.EmployeeId, "2026-03-02", "2026-03-06"));
+        await UpdateHandler(fixture).HandleAsync(
+            new UpdateAbsenceRequestCommand(
+                created.Value,
+                AbsenceType.Training,
+                new DateOnly(2026, 3, 3),
+                new DateOnly(2026, 3, 7),
+                null));
+        await ApproveHandler(fixture).HandleAsync(new ApproveAbsenceRequestCommand(created.Value));
+
+        var filed = Period("2026-03-02", "2026-03-06");
+        var moved = Period("2026-03-03", "2026-03-07");
+
+        Assert.Equal(
+            [
+                new AbsenceRequestCreated(created.Value, fixture.EmployeeId, AbsenceType.Vacation,
+                    filed),
+                new AbsenceRequestUpdated(created.Value, fixture.EmployeeId, AbsenceType.Training,
+                    moved),
+                new AbsenceRequestApproved(created.Value, fixture.EmployeeId, AbsenceType.Training,
+                    moved)
+            ],
+            fixture.DispatchedEvents);
+    }
+
+    /// <summary>A refused use case saves nothing, so nothing hears about it either.</summary>
+    [Fact]
+    public async Task A_refused_use_case_dispatches_nothing()
+    {
+        await using var fixture = await AbsencesFixture.CreateAsync();
+
+        var created = await CreateHandler(fixture)
+            .HandleAsync(Command(fixture.EmployeeId, "2026-03-02", "2026-03-06"));
+        await RejectHandler(fixture).HandleAsync(new RejectAbsenceRequestCommand(created.Value));
+
+        // The request is decided, and the second one belongs to nobody.
+        var approved = await ApproveHandler(fixture)
+            .HandleAsync(new ApproveAbsenceRequestCommand(created.Value));
+        var unknown = await CreateHandler(fixture)
+            .HandleAsync(Command(Guid.CreateVersion7(), "2026-04-01", "2026-04-03"));
+
+        Assert.True(approved.IsFailure);
+        Assert.True(unknown.IsFailure);
+        Assert.Equal(
+            [typeof(AbsenceRequestCreated), typeof(AbsenceRequestRejected)],
+            fixture.DispatchedEvents.Select(domainEvent => domainEvent.GetType()));
+    }
+
     private static CreateAbsenceRequestHandler CreateHandler(AbsencesFixture fixture)
     {
         return new CreateAbsenceRequestHandler(fixture.AbsenceRequests, fixture.Employees,
@@ -310,5 +368,10 @@ public class AbsenceRequestUseCaseTests
     {
         return new CreateAbsenceRequestCommand(employeeId, AbsenceType.Vacation,
             DateOnly.Parse(start), DateOnly.Parse(end), null);
+    }
+
+    private static DateRange Period(string start, string end)
+    {
+        return DateRange.Create(DateOnly.Parse(start), DateOnly.Parse(end)).Value;
     }
 }
