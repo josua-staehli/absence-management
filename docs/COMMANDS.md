@@ -67,11 +67,40 @@ if (-not (Test-Path $PROFILE)) { New-Item -ItemType File -Path $PROFILE -Force |
 Add-Content $PROFILE '(&mise activate pwsh) | Out-String | Invoke-Expression'
 ```
 
-Windows PowerShell 5.1 and PowerShell 7 (`winget install Microsoft.PowerShell`) both work, each with
-its own `$PROFILE`. PowerShell 7 is recommended, because commands in this documentation chain with
-`&&`, which 5.1 does not support. 5.1 also cannot tell mise about a `cd`, and mise warns about that
-at every start. The versions are right anyway, since on Windows activation puts mise's shims on the
-`PATH`; `setx MISE_PWSH_CHPWD_WARNING 0` turns the warning off.
+**Run them in every PowerShell you use.** Windows PowerShell 5.1 and PowerShell 7 keep separate
+profiles, and `$PROFILE` names the one of the shell the command is typed in:
+
+| Shell                                     | Profile, in the user's Documents folder              |
+| ----------------------------------------- | ---------------------------------------------------- |
+| Windows PowerShell 5.1 (`powershell.exe`) | `WindowsPowerShell\Microsoft.PowerShell_profile.ps1` |
+| PowerShell 7 (`pwsh.exe`)                 | `PowerShell\Microsoft.PowerShell_profile.ps1`        |
+
+A PowerShell whose profile lacks the line keeps whatever versions are on the `PATH`, for example a
+Node installed with nvm, so one window can report other versions than the next. An IDE terminal
+starts one of the two shells as well: in Rider and WebStorm it is the one under <kbd>Settings</kbd>
+→ <kbd>Tools</kbd> → <kbd>Terminal</kbd> → *Shell path*, unless the mise plugin hands the terminal
+its environment anyway, see [IDE integration](#ide-integration).
+
+PowerShell 7 (`winget install Microsoft.PowerShell`) is recommended, because commands in this
+documentation chain with `&&`, which 5.1 does not support. 5.1 also cannot tell mise about a `cd`,
+and says so at every start: *mise: chpwd functionality requires PowerShell version 7 or higher*.
+The versions are right anyway, since on Windows activation puts mise's shims on the `PATH`.
+
+Windows Terminal and the IDE terminals start Windows PowerShell 5.1 until told otherwise. In their
+lists, *PowerShell* is PowerShell 7 and *Windows PowerShell* is 5.1:
+
+| Where            | Make PowerShell 7 the default                                         |
+| ---------------- | --------------------------------------------------------------------- |
+| Windows Terminal | Settings (`Ctrl+,`) → Startup → Default profile → *PowerShell*        |
+| Rider, WebStorm  | Settings → Tools → Terminal → Shell path → `pwsh.exe`                 |
+| VS Code          | Command palette → *Terminal: Select Default Profile* → *PowerShell*   |
+
+Where Windows PowerShell 5.1 stays in use, this turns the warning off. It applies to programs
+started afterwards, so restart Windows Terminal and the IDEs once:
+
+```powershell
+setx MISE_PWSH_CHPWD_WARNING 0
+```
 
 A shell without activation, a script or CI runs commands through mise instead, for example
 `mise exec -- dotnet build`.
@@ -218,13 +247,18 @@ pnpm storybook   # Shared UI: http://localhost:4400
 dotnet build
 dotnet test
 dotnet build src/Contexts/Absences/Absences.Application
-dotnet test tests/Contexts/Absences.UnitTests
-dotnet test --filter "FullyQualifiedName~AbsenceTests"
+dotnet test --project tests/Contexts/Absences.UnitTests
+dotnet test --project tests/Contexts/Absences.UnitTests --filter-class "*AbsenceRequestTests"
 dotnet format --verify-no-changes
 dotnet format   # Apply formatting
 ```
 
 Build output goes to `artifacts/`.
+
+The tests run on Microsoft Testing Platform, which `global.json` opts into, so `dotnet test` names a
+project with `--project` and filters with xUnit's own options: `--filter-class`, `--filter-method`,
+`--filter-namespace` and `--filter-trait`, each accepting `*` at either end. A filter that leaves a
+test project with no test fails that project, so scope it to the project with `--project`.
 
 ### Packages and projects
 
@@ -310,7 +344,12 @@ docker stop <postgres-container>
 docker volume rm <volume-name>
 ```
 
-This permanently deletes the development data in that volume.
+This permanently deletes the development data in that volume. The API recreates the schema and the
+seeded employees on its next start.
+
+A new PostgreSQL major version needs this once: PostgreSQL does not open a data directory written by
+an older major. The AppHost moved from 17 to 18 (`WithImageTag("18")`), so a volume created before
+that has to go.
 
 ## Update .NET
 
@@ -381,10 +420,13 @@ is not the way, which is also why `pnpm-workspace.yaml` turns off pnpm's update 
 | Nx returns stale results | `pnpm exec nx reset` |
 | `Cannot find module '@absence-management/…'` | Add the dependency to the importing project |
 | `dotnet ef` is unavailable | `dotnet tool restore` |
+| PostgreSQL does not start, or starts empty, after the move to 18 | Its volume still holds PostgreSQL 17 data: [reset the development database](#reset-the-development-database) |
+| `dotnet test` exits with code 8 | A filter left a test project with no test: add `--project` |
 | `dotnet`, `node` or `pnpm` has the wrong version | `mise doctor`, then `mise ls --current` |
 | Entering the repository changes nothing | [Shell activation](#activate-mise-in-the-shell) is missing |
+| PowerShell 7, Windows PowerShell or the IDE terminal shows other versions than the others | That shell's own `$PROFILE` lacks the activation line: [run the two lines](#activate-mise-in-the-shell) in it |
 | mise asks whether to trust `mise.toml` | `mise trust`, after reading the file |
-| `chpwd functionality requires PowerShell version 7` | Harmless in Windows PowerShell 5.1: `setx MISE_PWSH_CHPWD_WARNING 0`, or use PowerShell 7 |
+| `chpwd functionality requires PowerShell version 7` | The shell is Windows PowerShell 5.1: [make PowerShell 7 the default](#activate-mise-in-the-shell), or `setx MISE_PWSH_CHPWD_WARNING 0` and restart the terminal |
 | `The token '&&' is not a valid statement separator` | Windows PowerShell 5.1: use PowerShell 7, or run the commands one by one |
 | PowerShell does not load `$PROFILE`: *running scripts is disabled* | `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser` |
 | pnpm warns *The store at … is not used* | Harmless: the repository is on another drive than the user profile, so pnpm keeps its store at that drive's root |

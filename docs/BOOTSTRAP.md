@@ -73,7 +73,9 @@ the better choice, for two reasons. Commands in these documents chain with `&&`,
 And mise switches the versions on `cd` through a hook only PowerShell 7 has: 5.1 catches up at the
 next prompt and warns about it at every start. Until then the versions are still the right ones,
 because on Windows the activation also puts mise's shims on the `PATH`, and a shim picks the version
-per directory every time it runs; `setx MISE_PWSH_CHPWD_WARNING 0` silences the warning.
+per directory every time it runs; `setx MISE_PWSH_CHPWD_WARNING 0` silences the warning in programs
+started afterwards. Windows Terminal and the IDE terminals keep opening 5.1 until their default
+shell is switched to PowerShell 7, see [docs/COMMANDS.md](COMMANDS.md#activate-mise-in-the-shell).
 
 `$PROFILE` often does not exist yet, so these two lines create it where it is missing and append the
 activation, without touching what is already in there:
@@ -82,6 +84,11 @@ activation, without touching what is already in there:
 if (-not (Test-Path $PROFILE)) { New-Item -ItemType File -Path $PROFILE -Force | Out-Null }
 Add-Content $PROFILE '(&mise activate pwsh) | Out-String | Invoke-Expression'
 ```
+
+The two lines go into each PowerShell that is used, because `$PROFILE` is the profile of the shell
+they are typed in. A shell whose profile lacks them gives no sign of it: it simply keeps the
+versions on its `PATH`, a Node installed with nvm for example, while the window next to it reports
+the pinned ones.
 
 Verify, in a new shell:
 
@@ -140,7 +147,7 @@ dotnet new list aspire
 If the list is empty, install them:
 
 ```bash
-dotnet new install Aspire.ProjectTemplates::13.5.0
+dotnet new install Aspire.ProjectTemplates::13.6.1
 ```
 
 The version pins the templates to the Aspire version used below (`Aspire.AppHost.Sdk` and the
@@ -152,7 +159,7 @@ Optionally, the [Aspire CLI](https://learn.microsoft.com/dotnet/aspire/cli/overv
 path:
 
 ```bash
-dotnet tool install --global Aspire.Cli --version 13.5.0
+dotnet tool install --global Aspire.Cli --version 13.6.1
 ```
 
 Everything in [Aspire configuration](#aspire-configuration) also works without it, with
@@ -456,13 +463,17 @@ the same SDK:
 dotnet new globaljson --sdk-version 10.0.401 --roll-forward latestPatch
 ```
 
-This creates the following file in the repository root:
+This creates the file in the repository root with its `sdk` part; the `test` part is added by hand,
+see below:
 
 ```json
 {
   "sdk": {
     "rollForward": "latestPatch",
     "version": "10.0.401"
+  },
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
   }
 }
 ```
@@ -484,6 +495,14 @@ The file has two readers, and that is what decides its values. mise installs the
   project on the machine and build with an SDK this repository never asked for. `latestPatch`
   keeps the feature band and accepts a newer patch inside it; `disable` would insist on the exact
   version.
+
+The `test` part is for `dotnet test`. xUnit v3 test projects are executables on Microsoft Testing
+Platform, and since xUnit v3 4.0 the .NET 10 SDK refuses to run them through the classic VSTest
+mode of `dotnet test`. `"runner": "Microsoft.Testing.Platform"` switches the command to the
+platform's own mode for the whole repository, which is also why the test projects reference no
+VSTest package, see [Tests](#tests). The command line differs from VSTest's: `--project` names a
+test project, and xUnit filters with its own options such as `--filter-class`, see
+[docs/COMMANDS.md](COMMANDS.md#backend).
 
 #### Directory.Build.props:
 
@@ -647,7 +666,7 @@ configuration is at the root too.
 Install the tools into the manifest:
 
 ```bash
-dotnet tool install dotnet-ef --version 10.0.11
+dotnet tool install dotnet-ef --version 10.0.12
 ```
 
 `dotnet-ef` is the Entity Framework Core CLI, used to create and apply the database migrations. The
@@ -995,10 +1014,13 @@ them there rather than naming them.
 
 #### Common changes
 
-The template still scaffolds xUnit **v2** with inline versions. Edit the generated `.csproj`:
-replace the `xunit` package with `xunit.v3`, drop `coverlet.collector`, remove every `Version="…"`
+The template still scaffolds xUnit **v2** for VSTest, with inline versions. Edit the generated
+`.csproj`: replace the `xunit` package with `xunit.v3`, drop `coverlet.collector`, the
+`Microsoft.NET.Test.Sdk` and the `xunit.runner.visualstudio` packages, remove every `Version="…"`
 attribute (they now live in `Directory.Packages.props`), and add `<OutputType>Exe</OutputType>`
-plus `<IsTestProject>true</IsTestProject>`. xUnit v3 test projects are executables.
+plus `<IsTestProject>true</IsTestProject>`. xUnit v3 test projects are executables on Microsoft
+Testing Platform, which `dotnet test` runs directly, see [global.json](#globaljson); the two VSTest
+packages would only serve the VSTest mode the repository does not use.
 
 One suppression is worth the line it costs:
 
@@ -1932,7 +1954,7 @@ In the `.csproj`, `<TargetFramework>`, `<Nullable>` and `<ImplicitUsings>` come 
 a readable name. The result:
 
 ```xml
-<Project Sdk="Aspire.AppHost.Sdk/13.5.0">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -1949,7 +1971,7 @@ a readable name. The result:
   </ItemGroup>
 
   <!--
-    Aspire 13.5 warns (ASPIRE010) when the AppHost does not use the Aspire CLI bundle. Using it
+    Aspire warns (ASPIRE010) when the AppHost does not use the Aspire CLI bundle. Using it
     would mean the orchestrator and the dashboard come from a globally installed `aspire` CLI
     instead of from NuGet, which would turn that CLI into a prerequisite for building this
     repository.
@@ -1961,15 +1983,16 @@ a readable name. The result:
 </Project>
 ```
 
-Without that `NoWarn`, the `TreatWarningsAsErrors` of the `Directory.Build.props` turns ASPIRE010
-into a failing build - which is why the suppression is not optional here.
+ASPIRE010 comes from an MSBuild target rather than the compiler, so `TreatWarningsAsErrors` does not
+turn it into an error - but without the `NoWarn`, every build of the solution would report the same
+warning, and a warning that is always there hides the one that is new.
 
 The version of the `Aspire.AppHost.Sdk` has to match the `Aspire.Hosting.*` packages, so both stay
 on the same Aspire version:
 
 ```xml
 <ItemGroup Label="Aspire (orchestration for local development)">
-  <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.5.0" />
+  <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.6.1" />
 </ItemGroup>
 ```
 
@@ -1988,7 +2011,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 // PostgreSQL runs as a container. The data volume and the persistent lifetime keep the data
 // between runs, pgAdmin gives a quick look into the database at development time.
 var postgres = builder.AddPostgres("postgres")
-    .WithImageTag("17")
+    .WithImageTag("18")
     .WithDataVolume()
     .WithLifetime(ContainerLifetime.Persistent)
     .WithPgAdmin();
@@ -2018,7 +2041,7 @@ What each call is responsible for:
 | Call                                    | Effect                                                                                     |
 | --------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `AddPostgres("postgres")`               | Starts a PostgreSQL container and generates the password for it                             |
-| `WithImageTag("17")`                     | Pins the major version instead of following `latest`                                        |
+| `WithImageTag("18")`                     | Pins the major version instead of following `latest`                                        |
 | `WithDataVolume()`                       | Stores the data in a named Docker volume, so it survives a restart of the container         |
 | `WithLifetime(ContainerLifetime.Persistent)` | Keeps the container running after `Ctrl+C`, which makes the next start fast              |
 | `WithPgAdmin()`                          | Adds a pgAdmin container that is already connected to the database, linked from the dashboard |
@@ -2028,6 +2051,13 @@ What each call is responsible for:
 | `WaitFor(database)`                      | Starts the API only after the database is up and healthy                                    |
 | `WithHttpHealthCheck("/health")`         | Marks the API as healthy only once that endpoint answers, which other resources can wait for |
 | `WithUrlForEndpoint("http", …)`          | Adds a second link on the resource, here `/scalar/v1`, resolved against that endpoint's address |
+
+The tag pins the major version only, so `18` follows PostgreSQL's patch releases, and the next
+major is a deliberate edit. That edit costs the data volume once: PostgreSQL does not open a data
+directory an older major wrote, so the volume is removed and the API recreates schema and seed
+data, see [docs/COMMANDS.md](COMMANDS.md#reset-the-development-database). Aspire itself handles
+the other difference of 18, its new data directory `/var/lib/postgresql`, when it mounts the
+volume.
 
 The link between the two sides is the resource name and nothing else: `postgres.AddDatabase("employeedb")`
 and `EmployeesBoundedContext.ConnectionStringName == "employeedb"`. `WithReference` turns that into the
@@ -3180,8 +3210,6 @@ export function App() {
     </AppLayout>
   );
 }
-
-export default App;
 ```
 
 `AppLayout` lives in `packages/shared/ui` and is what both applications need before the first page
@@ -3318,8 +3346,6 @@ export function App() {
     </AppLayout>
   );
 }
-
-export default App;
 ```
 
 The props of `AbsencesPage` are the whole difference between the two applications: the same page,
@@ -3455,9 +3481,10 @@ around them. Storybook is where that happens, and it is set up for that one libr
 | `src/lib/*.stories.tsx`             | One story per state of a component, next to the component itself            |
 
 Two dev dependencies at the workspace root, `storybook` and `@storybook/react-vite`, and two
-targets in `packages/shared/ui/package.json` — the same place the tags live. pnpm refuses to
-install packages younger than its minimum release age, so the Storybook 10.5.9 packages are listed
-under `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` until they grow past it:
+targets in `packages/shared/ui/package.json` — the same place the tags live. pnpm installs a release
+only once it is a day old (`minimumReleaseAge`), so a Storybook version from the same day is picked
+up the next one; a package that cannot wait goes under `minimumReleaseAgeExclude` in
+`pnpm-workspace.yaml` until it is old enough:
 
 ```bash
 pnpm storybook
