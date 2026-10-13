@@ -21,11 +21,9 @@ allowBuilds:
   oxlint: true
   oxfmt: true
 
-# node_modules records the absolute path it was created at. Move or rename the repository folder
-# and pnpm wants to purge and rebuild it - which it asks about first, and Aspire runs
-# `pnpm install` with no TTY to answer on. The install then aborts with exit code 1 and the
-# "web" resource never starts.
-confirmModulesPurge: false
+# pnpm is installed by mise at the version mise.lock pins, see mise.toml in the repository root.
+# The notice that a newer pnpm exists, and the `pnpm self-update` it suggests, do not apply.
+updateNotifier: false
 
 minimumReleaseAgeExclude:
   - '@storybook/builder-vite@10.5.9'

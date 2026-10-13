@@ -1,0 +1,24 @@
+# The toolchain of this repository. `mise install` sets it up, mise.lock records what the requests
+# below resolved to. See docs/COMMANDS.md for the setup per operating system.
+
+# mise.lock is written in lockfile revision 3, which older releases cannot read.
+min_version = '2026.9.16'
+
+[tools]
+# The version the repository is built with. `engines.node` in frontend/package.json is the range
+# the workspace supports, which is a different statement, and mise does not read it.
+node = '26'
+
+# Declared here and nowhere else - frontend/package.json has no `packageManager` field. Node 26 no
+# longer ships Corepack, which read that field, and mise reads it only from frontend/ downwards,
+# while the AppHost starts pnpm with the environment of the repository root.
+pnpm = '12'
+
+[settings]
+# The .NET SDK is the one global.json names - the file the dotnet CLI, MSBuild and the IDEs read
+# anyway. mise installs `sdk.version` verbatim and leaves `rollForward` to .NET.
+idiomatic_version_file_enable_tools = ['dotnet']
+
+# Keep mise.lock up to date on every install and upgrade, so every machine and CI get the same
+# versions.
+lockfile = true

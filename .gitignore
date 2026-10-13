@@ -4,6 +4,12 @@ bin/
 obj/
 *.user
 
+## mise
+# Personal tool overrides and the locks mise writes for them. mise.toml and mise.lock are committed.
+mise.local.toml
+mise.local.lock
+.mise/locks/mise.local/
+
 ## Rider
 # The .idea folder itself is committed, so the shared solution settings travel with the repository.
 # This one file does not: Rider's Aspire plugin rewrites it whenever the AppHost starts, because

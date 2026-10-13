@@ -23,6 +23,7 @@ frontend/           the frontend built as Nx workspace, apps and packages
 ## Commands
 
 ```bash
+mise install          # the toolchain: .NET SDK, Node and pnpm, as pinned in mise.lock
 dotnet build          # also writes frontend/openapi/AbsenceManagement.Api.json
 dotnet test
 dotnet run --project aspire/AbsenceManagement.AppHost   # runs everything, needs Docker
@@ -31,6 +32,26 @@ dotnet run --project aspire/AbsenceManagement.AppHost   # runs everything, needs
 ```bash
 cd frontend && pnpm check   # typecheck + oxlint (including boundaries) + formatting check
 ```
+
+## Tool versions
+
+mise installs the toolchain. Every version is written down once:
+
+| Tool     | Version lives in              | mise gets it via                                   |
+| -------- | ----------------------------- | -------------------------------------------------- |
+| .NET SDK | `global.json` → `sdk.version` | `idiomatic_version_file_enable_tools` in mise.toml |
+| Node     | `mise.toml` → `node`          | declared there                                     |
+| pnpm     | `mise.toml` → `pnpm`          | declared there                                     |
+
+- Never add `dotnet` to `[tools]` in `mise.toml`, and never add a `packageManager` field to
+  `frontend/package.json`. Each would be a second version that can drift, and pnpm would switch
+  itself to the `packageManager` version, bypassing the one mise installed.
+- `global.json` names a complete SDK version. mise installs `sdk.version` verbatim and ignores
+  `rollForward`, which .NET applies to the SDKs that are installed.
+- `mise.lock` is generated and committed: `mise install`, `mise upgrade` and `mise lock` write it,
+  nobody edits it by hand. CI installs from it with `--locked`.
+- `engines.node` in `frontend/package.json` is the range the workspace supports, not the version it
+  is built with. mise does not read it.
 
 ## Backend rules
 
