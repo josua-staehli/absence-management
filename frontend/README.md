@@ -32,6 +32,11 @@ and both dev servers, and hands each application its port and its API address:
 dotnet run --project aspire/AbsenceManagement.AppHost
 ```
 
+Node and pnpm come from mise: `mise.toml` in the repository root declares both, and `mise install`
+installs them in the versions `mise.lock` pins. So nothing depends on `nvm`, Corepack or a global
+pnpm, and `pnpm --version` is the same for everyone. See
+[../docs/COMMANDS.md](../docs/COMMANDS.md#first-time-setup) for the setup.
+
 For frontend-only work, with the API already running on its launch profile port 5180:
 
 ```bash

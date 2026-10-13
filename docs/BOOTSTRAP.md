@@ -7,55 +7,115 @@ exists for documentation purposes only, the steps do not need to be repeated.
 
 - A GitHub account
 - Git installed locally (`git --version`)
-- The .NET 10 SDK (see below)
+- mise, which brings the .NET SDK, Node and pnpm (see below)
 - A container runtime for the PostgreSQL container (see below)
 - The Aspire project templates, and optionally the Aspire CLI (see below)
-- Node 22.12 or newer, with pnpm through Corepack (see below)
 
-### Install the .NET 10 SDK
+Only mise and the container runtime are installed by hand. The .NET SDK, Node and pnpm are declared
+by files in the repository, and mise installs them from there, see [Tool versions](#tool-versions).
 
-Either download the installer or use a package manager.
+### Install mise
 
-**Download:** get the SDK installer (not just the runtime) for the current operating system from
-<https://dotnet.microsoft.com/download/dotnet/10.0> and run it.
+[mise](https://mise.jdx.dev) is a version manager: it installs tools per project, into the user's
+home directory, and switches the `PATH` when the shell enters a directory. That is why it comes
+first - every version below is then a line in a committed file rather than an instruction to
+follow.
 
-**CLI:**
+**Windows.** mise comes from winget, the package manager that is part of Windows 10 and 11:
 
-```bash
-# Windows
-winget install Microsoft.DotNet.SDK.10
-
-# macOS
-brew install --cask dotnet-sdk
-
-# Linux
-sudo apt-get install -y dotnet-sdk-10.0
+```powershell
+winget install jdx.mise
 ```
 
-Verify the installation, the version has to start with `10.`:
+winget needs nothing installed first, and it is the route mise's own documentation recommends. The
+package installs mise for the current user and brings along the Visual C++ runtime `mise.exe`
+depends on, where it is missing; `winget upgrade jdx.mise` updates it later. The package trails
+mise's own releases, sometimes by weeks - worth checking before `min_version` in `mise.toml` is
+raised, see [Tool versions](#tool-versions).
+
+**macOS:**
 
 ```bash
-dotnet --version
-dotnet --list-sdks
+brew install mise
 ```
 
-#### Update the SDK
-
-The following commands update the SDK:
+**Linux:**
 
 ```bash
-# Windows
-winget upgrade Microsoft.DotNet.SDK.10
-
-# macOS
-brew upgrade --cask dotnet-sdk
-
-# Linux
-sudo apt-get update && sudo apt-get upgrade dotnet-sdk-10.0
+curl -fsSL https://mise.run | sh
 ```
 
-When the SDK was installed with the downloaded installer, download and run the current installer
-again instead.
+The `mise.run` script installs to `~/.local/bin` and works on macOS too. Debian, Ubuntu, Fedora,
+Arch and Alpine also package mise, see [Installing mise](https://mise.jdx.dev/installing-mise.html).
+
+#### Activate it in the shell
+
+Installing the binary is not enough: activation is the hook that switches the versions per
+directory. Add the matching line to the shell profile and open a new shell:
+
+```bash
+# PowerShell, in $PROFILE
+(&mise activate pwsh) | Out-String | Invoke-Expression
+
+# zsh, in ~/.zshrc
+eval "$(mise activate zsh)"
+
+# bash, in ~/.bashrc
+eval "$(mise activate bash)"
+
+# fish, in ~/.config/fish/config.fish
+mise activate fish | source
+```
+
+On Windows the activation works in the Windows PowerShell 5.1 that comes with the system and in
+PowerShell 7 (`winget install Microsoft.PowerShell`), which keep separate profiles. PowerShell 7 is
+the better choice, for two reasons. Commands in these documents chain with `&&`, which 5.1 rejects.
+And mise switches the versions on `cd` through a hook only PowerShell 7 has: 5.1 catches up at the
+next prompt and warns about it at every start. Until then the versions are still the right ones,
+because on Windows the activation also puts mise's shims on the `PATH`, and a shim picks the version
+per directory every time it runs; `setx MISE_PWSH_CHPWD_WARNING 0` silences the warning.
+
+`$PROFILE` often does not exist yet, so these two lines create it where it is missing and append the
+activation, without touching what is already in there:
+
+```powershell
+if (-not (Test-Path $PROFILE)) { New-Item -ItemType File -Path $PROFILE -Force | Out-Null }
+Add-Content $PROFILE '(&mise activate pwsh) | Out-String | Invoke-Expression'
+```
+
+Verify, in a new shell:
+
+```bash
+mise --version
+mise doctor
+```
+
+`mise doctor` is the one to trust - it reports whether activation actually took, which
+`mise --version` does not.
+
+### Install the .NET SDK, Node and pnpm with mise
+
+At this point there is no repository yet, so the tools are installed globally for the user. Once
+the repository exists it declares them itself, in the files described under
+[Tool versions](#tool-versions), and these global versions only serve directories that declare
+nothing.
+
+```bash
+mise use -g dotnet@10 node@26 pnpm@12
+```
+
+.NET 10 is the SDK the solution targets. Node 26 is the release line that becomes LTS in October
+2026 and is supported until April 2029; Vite 8 needs at least 22.12, and the Oxc tools ship native
+binaries for the same range. pnpm 12 is the package manager of the frontend workspace. Verify:
+
+```bash
+dotnet --version   # has to start with 10.
+node --version     # has to start with v26.
+pnpm --version
+```
+
+pnpm is a tool of its own here rather than something Node brings along: Node 25 and newer no longer
+ship Corepack, which used to provide it.
 
 ### Container runtime
 
@@ -66,7 +126,7 @@ docker version
 ```
 
 [Docker Desktop](https://www.docker.com/products/docker-desktop/) or Podman both work. Nothing else
-has to be installed for the database, no local insetallation, no connection string by hand.
+has to be installed for the database, no local installation, no connection string by hand.
 
 ### Install the Aspire project templates
 
@@ -98,26 +158,6 @@ dotnet tool install --global Aspire.Cli --version 13.5.0
 Everything in [Aspire configuration](#aspire-configuration) also works without it, with
 `dotnet run --project aspire/AbsenceManagement.AppHost`.
 
-### Node and pnpm
-
-Node 22 or newer, Vite 8 requires at least 22.12. The Oxc tools ship as native binaries for
-the same range. Check version:
-
-```bash
-node --version
-```
-
-pnpm comes with Node through Corepack, so it does not have to be installed separately. On Windows,
-run the console with admin rights.
-
-```bash
-corepack enable
-```
-
-```bash
-pnpm --version
-```
-
 ## Preparations
 
 ### Create the Git repository on GitHub
@@ -148,6 +188,155 @@ The default branch is `main`.
 
 ## Add basic files
 
+### Tool versions
+
+The first file the repository gets is the one that makes it buildable, so that a clone plus
+`mise install` is the whole setup and no version has to be chased down in prose.
+
+**`mise.toml`**:
+
+```toml
+# The toolchain of this repository. `mise install` sets it up, mise.lock records what the requests
+# below resolved to. See docs/COMMANDS.md for the setup per operating system.
+
+# mise.lock is written in lockfile revision 3, which older releases cannot read.
+min_version = '2026.9.16'
+
+[tools]
+# The version the repository is built with. `engines.node` in frontend/package.json is the range
+# the workspace supports, which is a different statement, and mise does not read it.
+node = '26'
+
+# Declared here and nowhere else - frontend/package.json has no `packageManager` field. Node 26 no
+# longer ships Corepack, which read that field, and mise reads it only from frontend/ downwards,
+# while the AppHost starts pnpm with the environment of the repository root.
+pnpm = '12'
+
+[settings]
+# The .NET SDK is the one global.json names - the file the dotnet CLI, MSBuild and the IDEs read
+# anyway. mise installs `sdk.version` verbatim and leaves `rollForward` to .NET.
+idiomatic_version_file_enable_tools = ['dotnet']
+
+# Keep mise.lock up to date on every install and upgrade, so every machine and CI get the same
+# versions.
+lockfile = true
+```
+
+Then, once per clone:
+
+```bash
+mise trust
+mise install
+```
+
+`mise trust` is mise refusing to act on a configuration file nobody has looked at. A `mise.toml`
+can set environment variables and define tasks, so cloning a repository is not on its own consent
+to them, and a fresh clone confirms once. `mise install` writes `mise.lock`, described below. The
+.NET SDK joins once [global.json](#globaljson) exists; `mise install` picks it up from there.
+
+**One version, one file.** A version manager is a tempting place to restate every version, and
+that is the one thing it must not become: two copies of a version drift. So every version has
+exactly one place, and mise is pointed at it:
+
+| Tool     | Version lives in              | How mise gets it                                   |
+| -------- | ----------------------------- | -------------------------------------------------- |
+| .NET SDK | `global.json` → `sdk.version` | `idiomatic_version_file_enable_tools` in mise.toml |
+| Node     | `mise.toml` → `node`          | declared there                                     |
+| pnpm     | `mise.toml` → `pnpm`          | declared there                                     |
+
+`dotnet-ef` is a fourth version and stays in `dotnet-tools.json`, restored by `dotnet tool restore`:
+it is a NuGet package of this solution, not a machine tool. The rule throughout is the one that
+`Directory.Packages.props` already applies to packages - one version, one file.
+
+**Why `global.json` rather than `dotnet = '10'` in `mise.toml`.** mise supports both, and its own
+documentation says not to combine them. Two reasons decide it here:
+
+- `global.json` is the file the `dotnet` CLI, MSBuild, Rider and Visual Studio already read. It
+  cannot be removed without the repository losing its SDK pin for every tool that is not mise, so
+  it exists either way - and a file that exists either way should be the one that holds the
+  version.
+- A `dotnet` entry in `mise.toml` would not even pin the SDK that is *used*. mise installs every
+  SDK side by side in one shared `DOTNET_ROOT` and puts that directory on the `PATH`; choosing
+  among them is the job of .NET, which reads `global.json` for it. Without one, .NET takes the
+  newest SDK in the shared directory - possibly one another project installed.
+
+The cost is one sharp edge, and it is why `global.json` changed: **mise reads `sdk.version`
+verbatim and never interprets `rollForward`.** The former `10.0.100` with `latestFeature` would
+have made mise install the *oldest* .NET 10 SDK. `global.json` now names the SDK the repository is
+built with, see [global.json](#globaljson).
+
+**Why pnpm is declared in `mise.toml`, and `package.json` has no `packageManager` field.** That
+field used to be pnpm's pin, read by Corepack, which came with Node. Node 25 and newer no longer
+ship Corepack. mise can read the field too, but only from the current directory upwards, and the
+only `package.json` is in `frontend/`. The AppHost starts `pnpm` with the environment of the
+repository root, and so do Rider and any shell opened there, so pnpm has to be a tool of the root.
+Keeping the field as well would be worse than redundant: pnpm switches itself to the version in
+`packageManager` whenever the two disagree, so the field would silently win over mise.
+
+**Why pnpm 12.** mise installs pnpm from the native binaries pnpm publishes per platform, and
+records each one's checksum and GitHub build attestation in `mise.lock`. pnpm 12 publishes them for
+every platform the team uses; pnpm 11 had none for Intel Macs, which would have needed mise to fall
+back to the npm package, with a second lockfile of its own next to `mise.lock`.
+
+**`mise.lock` is committed.** `mise.toml` and `global.json` record what the project asks for,
+`mise.lock` what those requests resolved to, with download URLs and checksums per platform - the
+same split as `package.json` and `pnpm-lock.yaml`. A version moves through `mise upgrade`, a
+reviewable diff, rather than on a machine that quietly drifted ahead. CI installs from it with
+`--locked`, see [Continuous integration](#continuous-integration). `min_version` keeps out the mise
+releases that cannot read this lockfile.
+
+**Personal deviations go in `mise.local.toml`**, which is git-ignored, see [.gitignore](#gitignore).
+Trying the repository on another Node is then a local file, not an edit that risks being committed.
+
+### JetBrains IDEs and mise
+
+A version manager that only works in the shell is half a version manager: Rider and WebStorm start
+their own processes and do not inherit a shell. The
+[Mise plugin](https://plugins.jetbrains.com/plugin/24904-mise) closes that gap. It is installed
+once per IDE under <kbd>Settings</kbd> → <kbd>Plugins</kbd> → <kbd>Marketplace</kbd>, and supports
+Rider and WebStorm from 2026.1 on.
+
+The project half of its configuration is committed next to the other shared `.idea` files, once
+for the solution and once for the WebStorm project of the frontend.
+
+**`.idea/.idea.AbsenceManagement/.idea/mise.xml`** and **`frontend/.idea/mise.xml`**:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="com.github.l34130.mise.settings.MiseProjectSettings">
+    <option name="useMiseInAllCommandLines" value="true" />
+  </component>
+</project>
+```
+
+The option is the checkbox *Use in all other command line execution* under <kbd>Settings</kbd> →
+<kbd>Tools</kbd> → <kbd>Mise Settings</kbd>. It is off by default, and on here because every tool
+in this repository comes from mise, so the built-in terminal and the external tools should see the
+same `PATH` as a run configuration rather than the machine's. The other options keep their
+defaults, which already are what the project wants. The IDE only writes what deviates from a
+default, so the file is exactly what it would save itself.
+
+What the plugin does with it:
+
+| Where                    | What it does                                                            |
+| ------------------------ | ----------------------------------------------------------------------- |
+| Node.js settings         | Interpreter from mise, and the package manager in the WebStorm project  |
+| Run configurations       | The AppHost and the tests get mise's `PATH` and `DOTNET_ROOT`           |
+| Nx Console               | Runs `nx` with mise's Node, so it matches `pnpm` in the shell           |
+| Terminal, external tools | The same versions as outside the IDE                                    |
+
+Rider's .NET toolset is the one thing the plugin does not set: the plugin hands environment
+variables to the processes the IDE starts, while Rider resolves its SDK before any of them run -
+from a system-wide installation, if there is one, but not from mise. So the `dotnet` in mise's
+shared SDK directory goes into <kbd>Settings</kbd> → <kbd>Build, Execution, Deployment</kbd> →
+<kbd>Toolset and Build</kbd> → *.NET CLI executable path*, once, see
+[docs/COMMANDS.md](COMMANDS.md#jetbrains-ides). That setting is per machine, which is why it is not
+committed.
+
+VS Code gets the same through the mise extension, which the frontend workspace recommends, see
+[Create the Nx workspace](#create-the-nx-workspace).
+
 ### .gitignore
 
 This file covers the .NET side and the entries that hold for the whole repository. It does not
@@ -161,11 +350,21 @@ bin/
 obj/
 *.user
 
+## mise
+# Personal tool overrides and the locks mise writes for them. mise.toml and mise.lock are committed.
+mise.local.toml
+mise.local.lock
+.mise/locks/mise.local/
+
 ## Rider
 # The .idea folder itself is committed, so the shared solution settings travel with the repository.
 # This one file does not: Rider's Aspire plugin rewrites it whenever the AppHost starts, because
-# the database container is published on a new port every run.
+# the PostgreSQL container is published on a new port every run.
 .idea/.idea.AbsenceManagement/.idea/dataSources.xml
+
+## System files
+.DS_Store
+Thumbs.db
 ```
 
 Two `.gitignore` files rather than one, each next to the toolchain it describes: the root file is
@@ -173,14 +372,18 @@ about a solution that is built with `dotnet`, the frontend one about a workspace
 `pnpm`. Neither has to know what the other generates, and the frontend file is the one the Nx
 generators keep writing to.
 
+`mise.local.toml` holds personal tool overrides, see [Tool versions](#tool-versions). mise writes
+its locks to `mise.local.lock` and, for tools from npm, to `.mise/locks/mise.local/`; all three stay
+local, while the shared `mise.toml` and `mise.lock` are committed.
+
 The `.idea` folder is deliberately not ignored, so that the inspection profile, the encodings and
 the VCS mapping are the same for everyone who opens the solution in Rider. `dataSources.xml` is the
 exception: it is local state, it holds the database password in clear text, and Rider recreates it
 on demand.
 
-The agent entries are local settings and scratch worktrees of the coding agents. They sit here and
-not in the frontend file, because a pattern in the root `.gitignore` applies to every folder below
-it.
+The system files are the folder metadata that the macOS Finder and the Windows Explorer leave
+behind, `.DS_Store` and `Thumbs.db`. They sit here and not in the frontend file, because a pattern
+in the root `.gitignore` applies to every folder below it.
 
 ### .gitattributes
 
@@ -201,6 +404,10 @@ yarn.lock          linguist-generated=true -diff
 well, independent of the local `core.autocrlf` setting. `linguist-generated=true` collapses the
 lockfiles in diffs on GitHub and excludes them from the language statistics, `-diff` suppresses
 their content in local diffs.
+
+`mise.lock` is deliberately not in the list: `mise.toml` asks for Node and pnpm by major version
+only, so the lockfile diff is the one place their updates show up, see
+[Tool versions](#tool-versions).
 
 Adding these rules does not change files that are already committed. When line endings are
 normalized later in an existing repository, the working tree has to be renormalized once:
@@ -246,7 +453,7 @@ Add a `global.json` file to pin the SDK version, so that every developer and the
 the same SDK:
 
 ```bash
-dotnet new globaljson --sdk-version 10.0.100 --roll-forward latestFeature
+dotnet new globaljson --sdk-version 10.0.401 --roll-forward latestPatch
 ```
 
 This creates the following file in the repository root:
@@ -254,22 +461,29 @@ This creates the following file in the repository root:
 ```json
 {
   "sdk": {
-    "rollForward": "latestFeature",
-    "version": "10.0.100"
+    "rollForward": "latestPatch",
+    "version": "10.0.401"
   }
 }
 ```
 
-The `latestFeature` policy selects the highest installed 10.0 SDK, so patch and feature band
-updates are picked up automatically, while .NET 11 is not used by accident. Add `--force` to the
-command to overwrite an existing `global.json`.
+Add `--force` to the command to overwrite an existing `global.json`. `mise install` then installs
+this SDK, see [Tool versions](#tool-versions).
 
-The version has to be a real SDK version, which means it ends in a feature band: the .NET 10 SDKs
-are `10.0.100`, `10.0.200`, `10.0.400` and so on, and `10.0.0` is none of them. The local CLI
-accepts it anyway and rolls forward, so the mistake stays invisible until `actions/setup-dotnet`
-reads the same file in CI and refuses it with `Version '10.0.0' is not valid for the 'sdk.version'
-value in global.json`. The first band is therefore the floor, and `latestFeature` moves up from
-there.
+The file has two readers, and that is what decides its values. mise installs the SDK it names, and
+.NET then selects an SDK among the installed ones:
+
+- **The version is the SDK the repository is built with**, exact and complete. mise reads
+  `sdk.version` verbatim, so it has to be a real SDK version: one of the feature bands `10.0.100`,
+  `10.0.200`, `10.0.300` and `10.0.400`, or one of their patches such as `10.0.401`. `10.0` and
+  `10.0.0` are none of them. Raising this line and running `mise install` is how the repository
+  moves to a newer SDK.
+- **`rollForward` is `latestPatch`, not `latestFeature`.** It only governs what .NET does with the
+  SDKs that are installed, and the wider policies select the *highest* match rather than the
+  version named here. Under mise that would reach into a `DOTNET_ROOT` shared with every other
+  project on the machine and build with an SDK this repository never asked for. `latestPatch`
+  keeps the feature band and accepts a newer patch inside it; `disable` would insist on the exact
+  version.
 
 #### Directory.Build.props:
 
@@ -388,7 +602,7 @@ trim_trailing_whitespace = true
 max_line_length = 100
 
 # XML, project, config and data files
-[*.{xml,csproj,proj,slnx,props,targets,config,nuspec,json,yml,yaml}]
+[*.{xml,csproj,proj,slnx,props,targets,config,nuspec,json,yml,yaml,toml}]
 indent_size = 2
 
 [*.csproj]
@@ -2172,15 +2386,18 @@ Then a set of corrections to what the creation command and the generators wrote:
     dependencies, the build output, the Nx cache, the timestamp files Vite writes next to a
     configuration it had to transpile, the Playwright and coverage output, and `.vscode/*` with the
     four shared files excepted. Nothing else belongs here — what is not generated by `pnpm` stays
-    in the [.gitignore](#gitignore) of the repository root, which is where the two entries of the
-    coding agents were moved to as well, so that they cover the whole repository and not only
-    `frontend/`.
+    in the [.gitignore](#gitignore) of the repository root, which is where the two system-file
+    entries of the generated file, `.DS_Store` and `Thumbs.db`, were moved to as well, so that they
+    cover the whole repository and not only `frontend/`.
 
 14. **Correct the editor recommendations.** `.vscode/extensions.json` is generated with
     `esbenp.prettier-vscode` in it, a formatter this workspace does not use. It is replaced by
     `oxc.oxc-vscode`, the Oxc extension, which shows the oxlint diagnostics while typing and
     formats with oxfmt. The ESLint extension is removed; Nx Console and the Playwright extension
-    are kept as generated. The file is the only thing under `.vscode/` that is committed.
+    are kept as generated. `hverlin.mise-vscode`, the mise extension, is added, so that VS Code
+    works with the Node and pnpm of `mise.toml` - the counterpart of the JetBrains plugin, see
+    [JetBrains IDEs and mise](#jetbrains-ides-and-mise). The file is the only thing under
+    `.vscode/` that is committed.
 
 The `nx-welcome.tsx` component and its import in `app.tsx` can be deleted from both applications,
 together with the `app.module.css` next to it; `styles.css` stays, it is where the global stylesheet
@@ -2297,10 +2514,9 @@ backend, and `type:` is what the four project layers are inside one.
 
 ### Shared configuration
 
-**`package.json`** (root) — the scripts and the pinned package manager:
+**`package.json`** (root) — the supported Node range and the scripts:
 
 ```json
-"packageManager": "pnpm@11.22.0",
 "engines": { "node": ">=22.12" },
 "scripts": {
   "dev": "nx dev @absence-management/web",
@@ -2321,6 +2537,12 @@ backend, and `type:` is what the four project layers are inside one.
 }
 ```
 
+The creation command also writes a `packageManager` field with the pnpm version it ran with. It is
+removed: pnpm's version is declared in `mise.toml`, see [Tool versions](#tool-versions), and pnpm
+would switch itself to the version in the field whenever the two disagree. `engines.node` is the
+range the workspace supports - Vite 8 needs at least 22.12 - not the version it is built with,
+which is Node 26 from `mise.toml`.
+
 `pnpm run dev` and `pnpm run dev:admin` are what the two `AddViteApp(…)` resources of the AppHost
 call, and `pnpm run gen:api` is what the `api-client` resource calls, so Aspire starts Nx without
 knowing about Nx. The `dev` scripts contain nothing but `nx dev <app>`: anything both applications
@@ -2335,7 +2557,7 @@ underneath it — a false pass on exactly the check that matters most here.
 
 **`pnpm-workspace.yaml`** — the `packages:` globs are maintained by Nx, one line per folder that
 holds projects; `autoInstallPeers` and three of the `allowBuilds` entries come from the creation
-command, the two remaining entries and `confirmModulesPurge` are added by hand:
+command, the two remaining entries and `updateNotifier` are added by hand:
 
 ```yaml
 # The first glob comes with the workspace, the others are written by the Nx generators - a new
@@ -2361,12 +2583,15 @@ allowBuilds:
   oxlint: true
   oxfmt: true
 
-# node_modules records the absolute path it was created at. Move or rename the repository folder
-# and pnpm wants to purge and rebuild it - which it asks about first, and Aspire runs
-# `pnpm install` with no TTY to answer on. The install then aborts with exit code 1 and the
-# "web" resource never starts.
-confirmModulesPurge: false
+# pnpm is installed by mise at the version mise.lock pins, see mise.toml in the repository root.
+# The notice that a newer pnpm exists, and the `pnpm self-update` it suggests, do not apply.
+updateNotifier: false
 ```
+
+`node_modules` records the absolute path it was created at. When the repository folder is moved or
+renamed, pnpm 12 rebuilds it on the next install without asking, which matters because Aspire runs
+`pnpm install` with no terminal to answer a question on. pnpm 11 asked first, and needed
+`confirmModulesPurge: false` to keep the AppHost from failing; pnpm 12 no longer knows that setting.
 
 **`postcss.config.cjs`** — Mantine's preset, one file for the whole workspace:
 
@@ -3230,7 +3455,7 @@ around them. Storybook is where that happens, and it is set up for that one libr
 | `src/lib/*.stories.tsx`             | One story per state of a component, next to the component itself            |
 
 Two dev dependencies at the workspace root, `storybook` and `@storybook/react-vite`, and two
-targets in `packages/shared/ui/package.json` — the same place the tags live. pnpm 11 refuses to
+targets in `packages/shared/ui/package.json` — the same place the tags live. pnpm refuses to
 install packages younger than its minimum release age, so the Storybook 10.5.9 packages are listed
 under `minimumReleaseAgeExclude` in `pnpm-workspace.yaml` until they grow past it:
 
@@ -3373,11 +3598,13 @@ jobs:
     name: Backend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v5
+      # The .NET SDK that global.json names. mise.lock makes the action install with --locked;
+      # Node and pnpm are the frontend job's.
+      - uses: jdx/mise-action@v5
         with:
-          global-json-file: global.json
+          install_args: dotnet
 
       - run: dotnet restore
 
@@ -3405,17 +3632,23 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      # Node and pnpm from mise.toml, at the versions mise.lock pins.
+      - uses: jdx/mise-action@v5
         with:
-          package_json_file: frontend/package.json
+          install_args: node pnpm
 
-      - uses: actions/setup-node@v5
+      # mise-action caches the tools, not the packages pnpm downloads.
+      - name: Locate the pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v6
         with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('frontend/pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
 
       - run: pnpm install --frozen-lockfile
 
@@ -3442,7 +3675,7 @@ jobs:
       - run: pnpm exec nx run-many -t e2e
 
       - if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: frontend/apps/*-e2e/test-output
@@ -3480,11 +3713,19 @@ targets refuse to start without Nx Cloud, so the workflow uses the plain ones, w
 `nx.json` only sets the local default, and Vitest turns watching off whenever `CI` is set, which
 GitHub Actions does for every step.
 
-**pnpm comes from `pnpm/action-setup`, not from Corepack.** Locally it is enabled once with
-`corepack enable`, see [Node and pnpm](#node-and-pnpm). In the workflow the order matters:
-`actions/setup-node` can only fill its pnpm store cache if pnpm is already on the `PATH`, so the
-pnpm action has to run before it. It reads the version from the `packageManager` field, which lives
-in `frontend/package.json` and not at the repository root, hence `package_json_file`.
+**The toolchain comes from mise, as it does locally.** `jdx/mise-action` installs mise and runs
+`mise install`, and because `mise.lock` is committed it adds `--locked`: CI installs exactly the
+versions and checksums the lockfile records, and fails rather than resolve anything on its own, see
+[Tool versions](#tool-versions). So a version moves in one commit, for every machine and CI at
+once, and there is no `node-version` or `global-json-file` in the workflow that could disagree.
+
+`install_args` limits each job to the tools it uses: the backend job needs the .NET SDK, the
+frontend job Node and pnpm. The action caches what mise installed, under a key that covers the
+mise configuration files and `install_args`, so each job restores its own tools - the .NET SDK is
+downloaded once per change of `mise.lock`, not once per run. What the action does not cache is the
+pnpm store, the job that `cache: pnpm` of `actions/setup-node` used to do. It is an explicit
+`actions/cache` step keyed on `pnpm-lock.yaml`, and the store path is asked of pnpm rather than
+hard-coded, because pnpm chooses it per platform.
 
 ### What is configured on GitHub
 
@@ -3515,7 +3756,7 @@ written.
 
 The workflow declares `permissions: contents: read` itself, so the repository default only has to
 agree with it rather than grant more. If an organisation restricts actions to GitHub-owned and
-verified creators, `pnpm/action-setup` has to be allowed, the four others are GitHub's own.
+verified creators, `jdx/mise-action` has to be allowed, the three others are GitHub's own.
 
 No secrets and no variables are needed, nothing in the workflow talks to anything outside the
 repository. Cancelling superseded runs is not a repository setting either, the `concurrency` block
