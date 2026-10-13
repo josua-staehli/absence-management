@@ -5,7 +5,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 // PostgreSQL runs as a container. The data volume and the persistent lifetime keep the data
 // between runs, pgAdmin gives a quick look into the database at development time.
 var postgres = builder.AddPostgres("postgres")
-    .WithImageTag("17")
+    .WithImageTag("18")
     .WithDataVolume()
     .WithLifetime(ContainerLifetime.Persistent)
     .WithPgAdmin();

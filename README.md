@@ -66,6 +66,9 @@ eval "$(mise activate zsh)"
 eval "$(mise activate bash)"
 ```
 
+On Windows, PowerShell 7 and Windows PowerShell 5.1 each read their own `$PROFILE`, so the line goes
+into every one you use, see [docs/COMMANDS.md](docs/COMMANDS.md#activate-mise-in-the-shell).
+
 **3. Install the tools**, from the repository root:
 
 ```bash
